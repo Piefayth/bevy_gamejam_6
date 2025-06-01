@@ -1,18 +1,28 @@
 #import bevy_pbr::{
+    pbr_fragment::pbr_input_from_standard_material,
+    pbr_functions::{alpha_discard, main_pass_post_lighting_processing},
     forward_io::{VertexOutput, FragmentOutput},
 }
 
-@group(2) @binding(1) var base_color_texture: texture_2d<f32>;
-@group(2) @binding(2) var base_color_sampler: sampler;
+@group(2) @binding(100) var<uniform> intensity: f32;
+@group(2) @binding(101) var<uniform> alpha: f32;
+@group(2) @binding(102) var<uniform> blend_color: vec4<f32>;
+@group(2) @binding(103) var<uniform> blend_factor: f32;
 
 @fragment
 fn fragment(
     in: VertexOutput,
     @builtin(front_facing) is_front: bool,
 ) -> FragmentOutput {
-    let base_color = textureSample(base_color_texture, base_color_sampler, in.uv);
-    
+    var pbr_input = pbr_input_from_standard_material(in, is_front);
+    let material_color = alpha_discard(pbr_input.material, pbr_input.material.base_color);
+   
+    // Blend between material color and blend_color using blend_factor
+    let blended_color = mix(material_color, blend_color, blend_factor);
+   
     var out: FragmentOutput;
-    out.color = base_color;
+    out.color = vec4<f32>(blended_color.rgb * intensity, material_color.a * alpha);
+   
+    out.color = main_pass_post_lighting_processing(pbr_input, out.color);
     return out;
 }

@@ -1,7 +1,8 @@
 use asset_management::asset_plugins;
-use avian3d::prelude::RotationInterpolation;
-use bevy::{core_pipeline::{bloom::{Bloom, BloomPrefilter}, fxaa::Fxaa, tonemapping::Tonemapping}, pbr::{light_consts::lux, CascadeShadowConfigBuilder}, prelude::*};
+use avian3d::prelude::{PhysicsGizmos, RotationInterpolation};
+use bevy::{color::palettes::{css::MAGENTA, tailwind::CYAN_400}, core_pipeline::{bloom::{Bloom, BloomPrefilter}, fxaa::Fxaa, tonemapping::Tonemapping}, pbr::{light_consts::lux, CascadeShadowConfigBuilder}, prelude::*};
 use bevy_inspector_egui::{bevy_egui::EguiPlugin, quick::WorldInspectorPlugin};
+use bevy_tween::DefaultTweenPlugins;
 use game::gameplay_plugins;
 use rendering::{render_plugins, section_color_postprocess::PostProcessSettings, section_color_prepass::SectionsPrepass};
 use ui::ui_plugins;
@@ -19,6 +20,7 @@ fn main() -> AppExit {
             enable_multipass_for_primary_context: true,
         },
         WorldInspectorPlugin::default(),
+        DefaultTweenPlugins,
         asset_plugins,
         render_plugins,
         ui_plugins,
@@ -26,6 +28,14 @@ fn main() -> AppExit {
     ))
     //.insert_resource::<AmbientLight>(AmbientLight { color: WHITE.into(), brightness: 300000., ..default() })
     .init_state::<GameState>()
+        .insert_gizmo_config(
+            PhysicsGizmos {
+                shapecast_color: Some(CYAN_400.into()),
+                shapecast_shape_color: Some(MAGENTA.into()),
+                ..default()
+            },
+            GizmoConfig::default(),
+        )
     .add_systems(Startup, spawn_main_camera)
     .run()
 }

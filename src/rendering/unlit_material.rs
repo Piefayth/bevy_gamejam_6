@@ -16,7 +16,15 @@ pub type UnlitMaterial = ExtendedMaterial<StandardMaterial, UnlitMaterialExtensi
 #[derive(Asset, AsBindGroup, Reflect, Default, Debug, Clone)]
 #[reflect(Default)]
 pub struct UnlitMaterialExtension {
-    pub foo: f32,
+    #[uniform(100)]
+    pub intensity: f32,
+    #[uniform(101)]
+    pub alpha: f32,
+    #[uniform(102)]
+    pub blend_color: LinearRgba,
+    #[uniform(103)]
+    pub blend_factor: f32,
+
 }
 
 impl MaterialExtension for UnlitMaterialExtension {

@@ -1,4 +1,4 @@
-use avian3d::{prelude::{Gravity, PhysicsDebugPlugin}, PhysicsPlugins};
+use avian3d::{prelude::{Gravity, PhysicsDebugPlugin, PhysicsLayer}, PhysicsPlugins};
 use bevy::prelude::*;
 use input::input_plugin;
 use interaction::interaction_plugin;
@@ -11,10 +11,17 @@ pub mod interaction;
 pub fn gameplay_plugins(app: &mut App) {
     app.add_plugins((
         PhysicsPlugins::default(),
-        PhysicsDebugPlugin::default(),
+        //PhysicsDebugPlugin::default(),
         player_plugin,
         input_plugin,
         interaction_plugin,
     ))
     .insert_resource(Gravity(Vec3::NEG_Y * 19.6));
+}
+
+#[derive(PhysicsLayer, Default)]
+enum GameLayer {
+    #[default]
+    Default,
+    Player,
 }

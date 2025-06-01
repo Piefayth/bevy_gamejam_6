@@ -2,7 +2,7 @@ use bevy::{picking::pointer::PointerInteraction, prelude::*, window::CursorGrabM
 use bevy_enhanced_input::events::Completed;
 
 use crate::{
-    game::{input::SystemMenuOrCancel, interaction::{Interactable, INTERACTION_DISTANCE}}, GameState
+    game::{input::SystemMenuOrCancel, interaction::{Interactable, InteractionsDisabled, INTERACTION_DISTANCE}}, GameState
 };
 
 pub fn crosshair_plugin(app: &mut App) {
@@ -84,38 +84,36 @@ fn toggle_aim_state(
 }
 
 fn display_interaction_state(
-    mut commands: Commands,
-    pointers: Query<&PointerInteraction>,
-    q_interactable: Query<Entity, With<Interactable>>,
-    q_crosshair_reticle: Query<Entity, With<CrosshairReticle>>,
-    crosshair_state: Option<Res<State<CrosshairState>>>,
+   mut commands: Commands,
+   pointers: Query<&PointerInteraction>,
+   q_interactable: Query<Entity,  (With<Interactable>, Without<InteractionsDisabled>)>,
+   q_crosshair_reticle: Query<Entity, With<CrosshairReticle>>,
+   crosshair_state: Option<Res<State<CrosshairState>>>,
 ) {
-    if let Some(crosshair_state) = crosshair_state {
-        if matches!(**crosshair_state, CrosshairState::Shown) {
-            if let Ok(reticle_entity) = q_crosshair_reticle.single() {
-                let hit_interactable = pointers
-                    .iter()
-                    .filter_map(|interaction| interaction.get_nearest_hit())
-                    .filter(|(_entity, hit)| hit.depth <= INTERACTION_DISTANCE)
-                    .map(|(entity, _hit)| entity)
-                    .any(|entity| q_interactable.contains(*entity));
-               
-                let (border_color, background_color) = if hit_interactable {
-                    (
-                        Color::Srgba(Srgba::new(1.0, 0.5, 0.0, 1.0)),
-                        Color::Srgba(Srgba::new(1.0, 1.0, 1.0, 1.0))
-                    )
-                } else {
-                    (
-                        Color::Srgba(Srgba::new(0.0, 0.0, 0.0, 0.25)),
-                        Color::Srgba(Srgba::new(1.0, 1.0, 1.0, 0.25))
-                    )
-                };
-               
-                commands.entity(reticle_entity)
-                    .insert(BorderColor(border_color))
-                    .insert(BackgroundColor(background_color));
-            }
-        }
-    }
+   if let Some(crosshair_state) = crosshair_state {
+       if matches!(**crosshair_state, CrosshairState::Shown) {
+           if let Ok(reticle_entity) = q_crosshair_reticle.single() {
+               let hit_interactable = pointers
+                   .iter()
+                   .filter_map(|interaction| interaction.get_nearest_hit())
+                   .any(|(entity, hit)| hit.depth <= INTERACTION_DISTANCE && q_interactable.contains(*entity));
+              
+               let (border_color, background_color) = if hit_interactable {
+                   (
+                       Color::Srgba(Srgba::new(1.0, 0.5, 0.0, 1.0)),
+                       Color::Srgba(Srgba::new(1.0, 1.0, 1.0, 1.0))
+                   )
+               } else {
+                   (
+                       Color::Srgba(Srgba::new(0.0, 0.0, 0.0, 0.25)),
+                       Color::Srgba(Srgba::new(1.0, 1.0, 1.0, 0.25))
+                   )
+               };
+              
+               commands.entity(reticle_entity)
+                   .insert(BorderColor(border_color))
+                   .insert(BackgroundColor(background_color));
+           }
+       }
+   }
 }

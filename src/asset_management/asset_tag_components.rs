@@ -39,11 +39,18 @@ pub struct NeedsRigidBody {
     pub kind: RigidBody,
 }
 
+#[derive(Component, Reflect)]
+#[reflect(Component)]
+pub struct ExitDoorShutter {
+    pub unused: bool,
+}
+
 pub fn asset_tag_components_plugin(app: &mut App) {
     app.register_type::<RoomWall>()
         .register_type::<BigRedButton>()
         .register_type::<WeightedCube>()
         .register_type::<WeightedCubeColors>()
         .register_type::<CubeSpitter>()
-        .register_type::<NeedsRigidBody>();
+        .register_type::<NeedsRigidBody>()
+        .register_type::<ExitDoorShutter>();
 }

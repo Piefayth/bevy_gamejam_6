@@ -1,5 +1,5 @@
 use avian3d::prelude::{Collider, ColliderConstructor, RigidBody};
-use bevy::{asset::LoadState, pbr::ExtendedMaterial, prelude::*};
+use bevy::{asset::LoadState, color::palettes::css::{RED, WHITE}, pbr::ExtendedMaterial, prelude::*};
 
 use crate::{
     GameState,
@@ -117,7 +117,12 @@ fn postprocess_assets(
 
                     let default_new_material = ExtendedMaterial {
                         base: old_material.clone(),
-                        extension: UnlitMaterialExtension { foo: 0.0 },
+                        extension: UnlitMaterialExtension {
+                            intensity: 1.0,
+                            alpha: 1.0,
+                            blend_color: WHITE.into(),
+                            blend_factor: 0.0,
+                        },
                     };
 
                     // Example of singling out a specific marked object to modify the material
@@ -221,6 +226,6 @@ fn add_rigidbodies_to_colliders(
     q_colliders_without_rigidbody: Query<(Entity, &NeedsRigidBody)>,
 ) {
     for (entity, nrb) in &q_colliders_without_rigidbody {
-        commands.entity(entity).insert(nrb.kind);
+        commands.entity(entity).insert(nrb.kind).remove::<NeedsRigidBody>();
     }
 }
