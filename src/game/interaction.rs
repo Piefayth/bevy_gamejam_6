@@ -1,7 +1,10 @@
 use std::time::Duration;
 
 use avian3d::prelude::{
-    ColliderDensity, ColliderOf, ComputedMass, ExternalForce, ExternalImpulse, Mass, RigidBody, RotationInterpolation, SleepingDisabled, TransformInterpolation
+    Collider, ColliderConstructor, ColliderDensity, ColliderOf, CollisionEventsEnabled,
+    CollisionLayers, ComputedMass, ExternalForce, ExternalImpulse, Mass, OnCollisionStart,
+    RigidBody, RigidBodyColliders, RotationInterpolation, Sensor, SleepingDisabled,
+    TransformInterpolation,
 };
 use bevy::{picking::pointer::PointerInteraction, prelude::*};
 use bevy_enhanced_input::events::Completed;
@@ -20,8 +23,7 @@ use crate::asset_management::{
 };
 
 use super::{
-    input::UseInteract,
-    player::{Held, RightHand},
+    input::UseInteract, player::{Held, RightHand}, signals::Signal, GameLayer
 };
 
 pub fn interaction_plugin(app: &mut App) {
@@ -73,7 +75,7 @@ pub struct Interacted;
 
 #[derive(Component)]
 pub struct Interactable {
-    primary_action: Interactions,
+    pub primary_action: Interactions,
 }
 
 #[derive(Component)]
@@ -91,26 +93,46 @@ pub enum Interactions {
 }
 
 fn big_red_button_interaction(
-    _trigger: Trigger<Interacted>,
+    trigger: Trigger<Interacted>,
     mut commands: Commands,
     game_assets: Res<GameAssets>,
     q_cube_spitter: Query<(&Transform, &CubeSpitter)>,
+    q_collider_of: Query<&ColliderOf>,
+    q_body_transforms: Query<&GlobalTransform, (With<RigidBody>, Without<CubeSpitter>)>,
     exit_door_shutter: Single<Entity, With<ExitDoorShutter>>,
+    mut meshes: ResMut<Assets<Mesh>>,
 ) {
-    for (spitter_transform, spitter) in &q_cube_spitter {
-        commands.spawn((
-            SceneRoot(match spitter.color {
-                WeightedCubeColors::Cyan => game_assets.weighted_cube_cyan.clone(),
-            }),
-            Transform::from_translation(
-                spitter_transform.translation + Vec3::Y * 14.5 + -Vec3::X * 20.,
-            ),
-            RigidBody::Dynamic,
-            TransformInterpolation,
-            RotationInterpolation,
-            ExternalImpulse::new(Vec3::new(-5000., 0., 0.)),
-        ));
-    }
+    // right now we are getting the button rigidbody in the query
+    // but that's wrong because the trigger.target() is the collider
+    let button_collider_of = q_collider_of.get(trigger.target()).unwrap();
+    let target_location = q_body_transforms.get(button_collider_of.body).unwrap();
+
+    let start_loc = target_location.translation() + Vec3::Y * 10.;
+    let signal_indicator = commands
+        .spawn((
+            ColliderConstructor::Cuboid {
+                x_length: 100.,
+                y_length: 100.,
+                z_length: 0.1,
+            },
+            CollisionLayers::new(GameLayer::Signal, [GameLayer::Device]),
+            Mesh3d(meshes.add(Plane3d::new(-Vec3::Z, Vec2::splat(100.)))),
+            MeshMaterial3d(game_assets.cyan_signal_material.clone()),
+            Transform::from_translation(start_loc),
+            AnimationTarget,
+            CollisionEventsEnabled,
+            RigidBody::Kinematic,
+            Sensor,
+            Signal,
+        ))
+        .id();
+
+    let target = TargetComponent::marker();
+    commands.entity(signal_indicator).animation().insert(tween(
+        Duration::from_secs(10),
+        EaseKind::Linear,
+        target.with(translation(start_loc, start_loc + Vec3::Z * 500.)),
+    ));
 
     let target = TargetComponent::marker();
     commands.entity(*exit_door_shutter).insert(AnimationTarget);

@@ -24,6 +24,8 @@ pub struct UnlitMaterialExtension {
     pub blend_color: LinearRgba,
     #[uniform(103)]
     pub blend_factor: f32,
+    #[uniform(104)]
+    pub grey_threshold: f32,
 
 }
 

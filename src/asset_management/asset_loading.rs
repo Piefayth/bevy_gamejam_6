@@ -1,12 +1,19 @@
 use avian3d::prelude::{Collider, ColliderConstructor, RigidBody};
-use bevy::{asset::LoadState, color::palettes::css::{RED, WHITE}, pbr::ExtendedMaterial, prelude::*};
+use bevy::{
+    asset::LoadState,
+    color::palettes::{
+        css::{RED, WHITE},
+        tailwind::CYAN_400,
+    },
+    pbr::ExtendedMaterial,
+    prelude::*,
+};
 
 use crate::{
-    GameState,
-    rendering::{
-        section_color_prepass::{ATTRIBUTE_SECTION_COLOR, DrawSection},
+    game, rendering::{
+        section_color_prepass::{DrawSection, ATTRIBUTE_SECTION_COLOR},
         unlit_material::{UnlitMaterial, UnlitMaterialExtension},
-    },
+    }, GameState
 };
 
 use super::asset_tag_components::{NeedsRigidBody, RoomWall};
@@ -35,8 +42,20 @@ pub enum AssetLoaderState {
 
 #[derive(Resource, Default)]
 pub struct GameAssets {
+    // scenes
     pub main_menu_environment: Handle<Scene>,
+
+    // objects, in scene form
     pub weighted_cube_cyan: Handle<Scene>,
+
+    // meshes
+
+    // materials
+    pub cyan_signal_material: Handle<UnlitMaterial>,
+
+    // audio
+
+    // fonts
     pub font: Handle<Font>,
 }
 
@@ -47,6 +66,9 @@ fn on_start_loading(
     mut commands: Commands,
     mut game_assets: ResMut<GameAssets>,
     asset_server: Res<AssetServer>,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut unlit_materials: ResMut<Assets<UnlitMaterial>>,
+    mut standard_materials: ResMut<Assets<StandardMaterial>>,
 ) {
     game_assets.main_menu_environment =
         asset_server.load(GltfAssetLabel::Scene(0).from_asset("scenes/jam6scene1.glb"));
@@ -60,6 +82,27 @@ fn on_start_loading(
 
     game_assets.font = asset_server.load("fonts/Ronysiswadi15-51Dv8.ttf");
     commands.spawn(LoadingAsset(game_assets.font.clone().into()));
+
+    game_assets.cyan_signal_material = unlit_materials.add(UnlitMaterial {
+        base: StandardMaterial {
+            base_color: LinearRgba::new(4./255., 149./255., 249./255., 1.0).into(),
+            alpha_mode: AlphaMode::Blend,
+            ..default()
+        },
+        extension: UnlitMaterialExtension {
+            intensity: 1.0,
+            alpha: 0.75,
+            blend_color: WHITE.into(),
+            blend_factor: 0.0,
+            ..default()
+        }
+    });
+
+        // game_assets.cyan_signal_material = standard_materials.add(StandardMaterial {
+        //     base_color: LinearRgba::new(4., 149., 249., 255.).into(),
+        //     alpha_mode: AlphaMode::Opaque,
+        //     ..default()
+        // });
 
     commands.set_state(AssetLoaderState::Loading);
 }
@@ -122,6 +165,7 @@ fn postprocess_assets(
                             alpha: 1.0,
                             blend_color: WHITE.into(),
                             blend_factor: 0.0,
+                            grey_threshold: 0.05,
                         },
                     };
 
@@ -220,12 +264,14 @@ fn postprocess_assets(
     commands.set_state(GameState::Playing);
 }
 
-
 fn add_rigidbodies_to_colliders(
     mut commands: Commands,
     q_colliders_without_rigidbody: Query<(Entity, &NeedsRigidBody)>,
 ) {
     for (entity, nrb) in &q_colliders_without_rigidbody {
-        commands.entity(entity).insert(nrb.kind).remove::<NeedsRigidBody>();
+        commands
+            .entity(entity)
+            .insert(nrb.kind)
+            .remove::<NeedsRigidBody>();
     }
 }
