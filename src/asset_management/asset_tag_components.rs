@@ -35,6 +35,12 @@ pub struct CubeSpitter {
 
 #[derive(Component, Reflect)]
 #[reflect(Component)]
+pub struct SignalSpitter {
+    pub unused: bool,
+}
+
+#[derive(Component, Reflect)]
+#[reflect(Component)]
 pub struct NeedsRigidBody {
     pub kind: RigidBody,
 }
@@ -58,6 +64,7 @@ pub fn asset_tag_components_plugin(app: &mut App) {
         .register_type::<WeightedCube>()
         .register_type::<WeightedCubeColors>()
         .register_type::<CubeSpitter>()
+        .register_type::<SignalSpitter>()
         .register_type::<NeedsRigidBody>()
         .register_type::<ExitDoorShutter>()
         .register_type::<PressurePlate>();

@@ -16,6 +16,7 @@ pub mod pressure_plate;
 pub fn gameplay_plugins(app: &mut App) {
     app.add_plugins((
         PhysicsPlugins::default(),
+        //PhysicsDebugPlugin::default(),
         player_plugin,
         input_plugin,
         interaction_plugin,

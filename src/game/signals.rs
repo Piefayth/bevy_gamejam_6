@@ -84,7 +84,7 @@ pub fn spitter_consume_signal(
                                     TargetAsset::Asset(spitter_material_handle.clone_weak()).with(
                                         MaterialIntensityInterpolator {
                                             start: 1.0,
-                                            end: 5.0,
+                                            end: 10.0,
                                         },
                                     ),
                                 ),
@@ -94,7 +94,7 @@ pub fn spitter_consume_signal(
                                     EaseKind::CubicIn,
                                     TargetAsset::Asset(spitter_material_handle.clone_weak()).with(
                                         MaterialIntensityInterpolator {
-                                            start: 5.0,
+                                            start: 10.0,
                                             end: 1.0,
                                         },
                                     ),
@@ -175,7 +175,7 @@ fn cube_consume_signal(
         if q_signals.contains(trigger.collider) {
             if !q_powered_cubes.contains(cube_body) {
                 commands.entity(cube_body).insert(Powered);
-                commands.entity(trigger.collider).despawn();
+                let _ = commands.entity(trigger.collider).despawn(); // cube may have been despawned this frame
             }
         }
     }

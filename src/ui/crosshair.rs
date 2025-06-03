@@ -153,17 +153,21 @@ fn display_interaction_state(
     if let Some(crosshair_state) = crosshair_state {
         if matches!(**crosshair_state, CrosshairState::Shown) {
             if let Ok(reticle_entity) = q_crosshair_reticle.single() {
-                // Get the interactable entity if one is hit
-                let hit_interactable = pointers
-                    .iter()
-                    .filter_map(|interaction| interaction.get_nearest_hit())
-                    .find_map(|(entity, hit)| {
-                        if hit.depth <= INTERACTION_DISTANCE {
-                            q_interactable.get(*entity).ok()
-                        } else {
-                            None
-                        }
-                    });
+            // Get the interactable entity if one is hit
+            let hit_interactable = pointers
+                .iter()
+                .filter_map(|interaction| interaction.get_nearest_hit())
+                .find_map(|(entity, hit)| {
+                    if hit.depth <= INTERACTION_DISTANCE
+                    && q_interactable.contains(*entity)
+                    && !(maybe_held_object.is_some() 
+                            && q_interactable.get(*entity).map_or(false, |i| matches!(i.primary_action, Interactions::PickUp)))
+                    {
+                        q_interactable.get(*entity).ok()
+                    } else {
+                        None
+                    }
+                });
                 
                 let (border_color, background_color) = if hit_interactable.is_some() {
                     (
@@ -194,7 +198,6 @@ fn display_interaction_state(
                         left_text.0 = String::from("");
                     }
                 }
-
                 
                 commands
                     .entity(reticle_entity)

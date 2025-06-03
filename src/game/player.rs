@@ -3,7 +3,10 @@ use std::f32::consts::{self, FRAC_PI_2, FRAC_PI_4};
 use avian3d::{
     math::PI,
     prelude::{
-        Collider, ColliderDisabled, ColliderOf, CollisionEventsEnabled, CollisionLayers, LockedAxes, Physics, PhysicsSet, RigidBody, RigidBodyColliders, RigidBodyDisabled, ShapeCastConfig, ShapeCaster, ShapeHits, SpatialQuery, SpatialQueryFilter, TransformInterpolation
+        Collider, ColliderDisabled, ColliderOf, CollisionEventsEnabled, CollisionLayers,
+        LockedAxes, Physics, PhysicsSet, RigidBody, RigidBodyColliders, RigidBodyDisabled,
+        ShapeCastConfig, ShapeCaster, ShapeHits, SpatialQuery, SpatialQueryFilter,
+        TransformInterpolation,
     },
 };
 use bevy::{
@@ -28,7 +31,9 @@ use crate::{
 };
 
 use super::{
-    input::{FixedInputContext, Jump, Look, Movement, UpdateInputContext, UseInteract}, interaction::{Interactable, InteractionsDisabled}, GameLayer
+    GameLayer,
+    input::{FixedInputContext, Jump, Look, Movement, UpdateInputContext, UseInteract},
+    interaction::{Interactable, InteractionsDisabled},
 };
 
 pub fn player_plugin(app: &mut App) {
@@ -99,7 +104,7 @@ fn spawn_player(
         StateScoped(GameState::Playing),
         TransformInterpolation,
         CollisionLayers::new(GameLayer::Player, [GameLayer::Default, GameLayer::Device]),
-        CollisionEventsEnabled
+        CollisionEventsEnabled,
     ));
 
     // set camera rotation to away from origin.
@@ -197,11 +202,7 @@ pub struct Held {
 fn picked_up_item(
     mut commands: Commands,
     q_picked_up: Query<(Entity, &RigidBodyColliders), Added<Held>>,
-    mut q_collider_materials: Query<(
-        Entity,
-        &MeshMaterial3d<UnlitMaterial>,
-        &Collider,
-    )>,
+    mut q_collider_materials: Query<(Entity, &MeshMaterial3d<UnlitMaterial>, &Collider)>,
     mut unlit_materials: ResMut<Assets<UnlitMaterial>>,
     mut transforms: Query<&mut Transform>,
     mut player: Single<(Entity, &mut RightHand), With<Player>>,
@@ -222,7 +223,10 @@ fn picked_up_item(
                 commands
                     .entity(picked_up_collider)
                     .remove::<DrawSection>()
-                    .insert(CollisionLayers::new(GameLayer::Ignore, [GameLayer::Default]))
+                    .insert(CollisionLayers::new(
+                        GameLayer::Ignore,
+                        [GameLayer::Default],
+                    ))
                     .insert(InteractionsDisabled)
                     .insert(Pickable::IGNORE);
 
@@ -236,7 +240,7 @@ fn picked_up_item(
             excluded_entities.push(thing.clone());
         }
 
-        commands.entity(picked_up_body).insert(RigidBodyDisabled);
+        commands.entity(picked_up_body).insert((RigidBodyDisabled,));
 
         if let Ok(mut body_transform) = transforms.get_mut(picked_up_body) {
             body_transform.rotation = Quat::IDENTITY;
@@ -253,9 +257,10 @@ fn picked_up_item(
             .with_max_distance(50.0)
             .with_query_filter(
                 SpatialQueryFilter::default()
-                    .with_mask([GameLayer::Default, GameLayer::Device, GameLayer::Player])
+                    .with_mask([GameLayer::Default, GameLayer::Device])
                     .with_excluded_entities(excluded_entities),
-            ).with_max_hits(1),
+            )
+            .with_max_hits(1),
         );
     }
 }
@@ -264,12 +269,9 @@ fn released_item(
     trigger: Trigger<OnRemove, Held>,
     mut commands: Commands,
     q_releasables: Query<(Entity, &RigidBodyColliders)>,
-    q_collider_materials: Query<(
-        Entity,
-        &MeshMaterial3d<UnlitMaterial>,
-    )>,
+    q_collider_materials: Query<(Entity, &MeshMaterial3d<UnlitMaterial>)>,
     mut unlit_materials: ResMut<Assets<UnlitMaterial>>,
-    mut player: Single<(Entity, &mut RightHand),  With<Player>>,
+    mut player: Single<(Entity, &mut RightHand), With<Player>>,
 ) {
     if let Ok((releasable_entity, releasable_colliders)) = q_releasables.get(trigger.target()) {
         for collider_entity in releasable_colliders.iter() {
@@ -284,17 +286,29 @@ fn released_item(
                     .entity(collider_entity)
                     .insert(DrawSection)
                     // TODO: These layers might not be the same for every item we can hold?
-                    .insert(CollisionLayers::new(GameLayer::Device, [GameLayer::Default, GameLayer::Player, GameLayer::Signal, GameLayer::Device]))
+                    .insert(CollisionLayers::new(
+                        GameLayer::Device,
+                        [
+                            GameLayer::Default,
+                            GameLayer::Player,
+                            GameLayer::Signal,
+                            GameLayer::Device,
+                        ],
+                    ))
                     .remove::<InteractionsDisabled>()
                     .insert(Pickable::default());
             }
         }
 
         player.1.held_object = None;
-        commands.entity(player.0).remove::<ShapeCaster>().remove::<ShapeHits>();
-        commands.entity(releasable_entity).remove::<RigidBodyDisabled>();
+        commands
+            .entity(player.0)
+            .remove::<ShapeCaster>()
+            .remove::<ShapeHits>();
+        commands
+            .entity(releasable_entity)
+            .remove::<RigidBodyDisabled>();
     }
-
 }
 
 fn project_held_placable_item(
@@ -312,31 +326,51 @@ fn project_held_placable_item(
             let camera_pos = camera.translation();
             let camera_forward = camera.forward();
 
+            // Extract the Y rotation from the camera
+            let camera_y_rotation = {
+                let (yaw, _pitch, _roll) = camera
+                    .to_scale_rotation_translation()
+                    .1
+                    .to_euler(EulerRot::YXZ);
+                Quat::from_rotation_y(yaw + PI) // adding pi to turn the object around, is it appropriate for all obj?
+            };
+
             shape_caster.origin = Vec3::Y * CAMERA_HEIGHT;
             shape_caster.direction = camera_forward;
 
             // Use the first hit from the shape caster
-            if let Some(hit) = shape_hits.iter().min_by(|a, b| a.distance.partial_cmp(&b.distance).unwrap()) {
+            if let Some(hit) = shape_hits
+                .iter()
+                .min_by(|a, b| a.distance.partial_cmp(&b.distance).unwrap())
+            {
                 if let Ok(mut held_transform) = transforms.get_mut(held_entity) {
                     let camera_pos = camera.translation();
                     let camera_forward = camera.forward();
 
                     held_transform.translation = camera_pos + hit.distance * camera_forward;
+                    held_transform.rotation = camera_y_rotation;
+
+                    // Check if surface is flat enough (normal pointing mostly upward)
+                    let is_flat_surface = hit.normal1.y > 0.8; // Adjust threshold as needed
 
                     if let Ok(rigid_body_colliders) = q_rigid_body_colliders.get(held_entity) {
                         for collider_entity in rigid_body_colliders.iter() {
                             if let Ok(handle) = q_material_handles.get(collider_entity) {
                                 if let Some(unlit_material) = unlit_materials.get_mut(handle) {
-                                    unlit_material.extension.blend_color = WHITE.into();
-                                    unlit_material.extension.blend_factor = 0.0;
+                                    if is_flat_surface {
+                                        unlit_material.extension.blend_color = WHITE.into();
+                                        unlit_material.extension.blend_factor = 0.0;
+                                    } else {
+                                        unlit_material.extension.blend_color = RED.into();
+                                        unlit_material.extension.blend_factor = 0.8;
+                                    }
                                 }
                             }
                         }
                     }
 
-                    // update the Held component
                     if let Ok(mut held) = q_held.get_mut(held_entity) {
-                        held.can_release = true;
+                        held.can_release = is_flat_surface;
                     }
                 }
             } else {
@@ -344,6 +378,7 @@ fn project_held_placable_item(
                 if let Ok(mut held_transform) = transforms.get_mut(held_entity) {
                     let default_distance = 20.0;
                     held_transform.translation = camera_pos + camera_forward * default_distance;
+                    held_transform.rotation = camera_y_rotation; // Apply camera's Y rotation here too
                 }
 
                 if let Ok(rigid_body_colliders) = q_rigid_body_colliders.get(held_entity) {

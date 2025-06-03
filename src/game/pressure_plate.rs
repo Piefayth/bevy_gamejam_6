@@ -72,10 +72,9 @@ fn debug_draw_pressure_plate_detection(
             Color::srgb(0.0, 1.0, 0.0)
         };
 
-        // Fix: Use the same half-extents as the spatial query
         gizmos.cuboid(
             Transform::from_translation(detection_center)
-                .with_scale(DETECTION_SIZE), // This should match your collider size
+                .with_scale(DETECTION_SIZE),
             color,
         );
     }
@@ -162,9 +161,6 @@ fn update_pressure_plate_overlaps(
                         plate_entity,
                     );
                 }
-
-                // TODO: If the new entity that entered was powered, we should power the pressure plate
-                // Which is a different event than pressing it?
             }
         }
 
@@ -175,9 +171,6 @@ fn update_pressure_plate_overlaps(
             .copied()
             .collect();
 
-        if entities_that_left.len() > 0 {
-                println!("exit");
-        }
         // Update the overlapping entities
         detector.overlapping_entities = current_overlaps;
 

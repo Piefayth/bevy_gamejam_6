@@ -18,7 +18,7 @@ use bevy_tween::{
 use crate::asset_management::{
     asset_loading::GameAssets,
     asset_tag_components::{
-        BigRedButton, CubeSpitter, ExitDoorShutter, WeightedCube, WeightedCubeColors,
+        BigRedButton, CubeSpitter, ExitDoorShutter, SignalSpitter, WeightedCube, WeightedCubeColors
     },
 };
 
@@ -32,6 +32,7 @@ pub fn interaction_plugin(app: &mut App) {
         (
             register_big_red_button_interaction,
             register_weighted_cube_interaction,
+            register_signal_spitter_interaction
         ),
     );
 }
@@ -42,7 +43,7 @@ fn interact(
     _trigger: Trigger<Completed<UseInteract>>,
     mut commands: Commands,
     pointers: Query<&PointerInteraction>,
-    interactables: Query<(), (With<Interactable>, Without<InteractionsDisabled>)>,
+    interactables: Query<&Interactable, Without<InteractionsDisabled>>,
     mut right_hand: Single<&mut RightHand>,
     q_held: Query<&Held>,
 ) {
@@ -52,7 +53,10 @@ fn interact(
         .iter()
         .filter_map(|interaction| interaction.get_nearest_hit())
         .filter(|(entity, hit)| {
-            hit.depth <= INTERACTION_DISTANCE && interactables.contains(*entity)
+        hit.depth <= INTERACTION_DISTANCE
+        && interactables.contains(*entity)
+        && !(right_hand.held_object.is_some() // you can't pick something up if you're holding something
+                && interactables.get(*entity).map_or(false, |i| matches!(i.primary_action, Interactions::PickUp)))
         })
     {
         commands.entity(*entity).trigger(Interacted);
@@ -200,5 +204,48 @@ fn register_weighted_cube_interaction(
                 .observe(weighted_cube_interaction)
                 .insert(Interactable::new(Interactions::PickUp));
         }
+    }
+}
+
+fn signal_spitter_interaction(
+    trigger: Trigger<Interacted>,
+    mut commands: Commands,
+    mut right_hand: Single<&mut RightHand>,
+    q_collider_of: Query<&ColliderOf>,
+) {
+    if let Ok(collider_of) = q_collider_of.get(trigger.target()) {
+        if right_hand.held_object.is_none() {
+            right_hand.held_object = Some(collider_of.body);
+            commands.entity(collider_of.body).insert(Held::default());
+        }
+    }
+}
+
+fn register_signal_spitter_interaction(
+    mut commands: Commands,
+    q_new_spitters: Query<(Entity, &Children), Added<SignalSpitter>>,
+    q_mesh: Query<Entity, With<Mesh3d>>,
+) {
+    // Move the SignalSpitter marker onto the one and only child
+    
+    for (new_spitter, children) in &q_new_spitters {
+        if children.len() > 1 {
+            warn!("spitter cannot have more than one child");
+            continue;
+        }
+        
+        if let Some(found_child) = children.iter().find(|&child| q_mesh.contains(child)) {
+            commands
+                .entity(found_child)
+                .remove::<RigidBody>()  // move it to the parent
+                .observe(signal_spitter_interaction)
+                .insert((
+                    Interactable::new(Interactions::PickUp),
+                ));
+
+            commands.entity(new_spitter).insert(RigidBody::Kinematic);
+        }
+
+
     }
 }
