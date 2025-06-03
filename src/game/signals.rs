@@ -58,7 +58,7 @@ impl Interpolator for MaterialIntensityInterpolator {
     type Item = UnlitMaterial;
 
     fn interpolate(&self, material: &mut Self::Item, progress: f32) {
-        material.extension.intensity = self.start + (self.end - self.start) * progress;
+        material.extension.params.intensity = self.start + (self.end - self.start) * progress;
     }
 }
 

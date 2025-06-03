@@ -35,7 +35,7 @@ pub fn gameplay_plugins(app: &mut App) {
 }
 
 #[derive(PhysicsLayer, Default)]
-enum GameLayer {
+pub enum GameLayer {
     #[default]
     Default,
     Player,

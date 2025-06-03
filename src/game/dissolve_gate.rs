@@ -36,9 +36,9 @@ fn register_dissolve_gates(
             if let Ok(material_handle) = q_unlit_objects.get(gate_child) {
                 let mut old_material = unlit_materials.get(material_handle).unwrap().clone();
                 old_material.base.alpha_mode = AlphaMode::Blend;
-                old_material.extension.alpha = 0.5;
-                old_material.extension.blend_color = RED.into();
-                old_material.extension.blend_factor = 1.0;
+                old_material.extension.params.alpha = 0.5;
+                old_material.extension.params.blend_color = RED.into();
+                old_material.extension.params.blend_factor = 1.0;
 
                 commands
                     .entity(gate_child)
@@ -66,8 +66,6 @@ pub fn handle_dissolve_collisions(
     let device_or_player_collider_entity = trigger.collider;
     let maybe_dissolve_gate = trigger.target();
 
-    // If the event target wasn't a dissolve gate, skip it
-    // This can happen if, say, the player touches a dissolvable device
     if let Ok(maybe_dissolve_gate_parent) = q_child_of.get(maybe_dissolve_gate) {
         if !q_dissolve_gates.contains(maybe_dissolve_gate_parent.0) {
             return;

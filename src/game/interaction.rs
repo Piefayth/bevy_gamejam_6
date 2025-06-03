@@ -1,12 +1,9 @@
 use std::time::Duration;
 
 use avian3d::prelude::{
-    Collider, ColliderConstructor, ColliderDensity, ColliderOf, CollisionEventsEnabled,
-    CollisionLayers, ComputedMass, ExternalForce, ExternalImpulse, Mass, OnCollisionStart,
-    RigidBody, RigidBodyColliders, RotationInterpolation, Sensor, SleepingDisabled,
-    TransformInterpolation,
+    Collider, ColliderConstructor, ColliderDensity, ColliderOf, CollisionEventsEnabled, CollisionLayers, ComputedMass, ExternalForce, ExternalImpulse, Mass, OnCollisionStart, RayHitData, RigidBody, RigidBodyColliders, RotationInterpolation, Sensor, SleepingDisabled, SpatialQuery, SpatialQueryFilter, TransformInterpolation
 };
-use bevy::{picking::pointer::PointerInteraction, prelude::*, transform};
+use bevy::{prelude::*, window::PrimaryWindow};
 use bevy_enhanced_input::events::Completed;
 use bevy_tween::{
     combinator::{sequence, tween},
@@ -42,27 +39,114 @@ pub const INTERACTION_DISTANCE: f32 = 30.;
 fn interact(
     _trigger: Trigger<Completed<UseInteract>>,
     mut commands: Commands,
-    pointers: Query<&PointerInteraction>,
+    spatial_query: SpatialQuery,
+    camera_query: Query<&GlobalTransform, With<Camera>>,
     interactables: Query<&Interactable, Without<InteractionsDisabled>>,
     mut right_hand: Single<&mut RightHand>,
     q_held: Query<&Held>,
 ) {
     let mut found_hit: bool = false;
 
-    for (entity, _hit) in pointers
-        .iter()
-        .filter_map(|interaction| interaction.get_nearest_hit())
-        .filter(|(entity, hit)| {
-        hit.depth <= INTERACTION_DISTANCE
-        && interactables.contains(*entity)
-        && !(right_hand.held_object.is_some() // you can't pick something up if you're holding something
-                && interactables.get(*entity).map_or(false, |i| matches!(i.primary_action, Interactions::PickUp)))
-        })
-    {
-        commands.entity(*entity).trigger(Interacted);
-        found_hit = true;
+    // Get camera transform and window for raycast
+    let Ok(camera_transform) = camera_query.single() else {
+        return;
+    };
+    
+    // Cast ray from camera center forward
+    let ray_origin = camera_transform.translation();
+    let ray_direction = camera_transform.forward();
+    
+    // Perform raycast
+    if let Some(hit) = spatial_query.cast_ray(
+        ray_origin,
+        ray_direction,
+        INTERACTION_DISTANCE,
+        true, // solid hits only
+            &SpatialQueryFilter::default()
+                .with_mask([GameLayer::Default, GameLayer::Device])
+    ) {
+        let hit_entity = hit.entity;
+        
+        // Check if the hit entity is interactable
+        if let Ok(interactable) = interactables.get(hit_entity) {
+            // Check if we can interact (don't pick up if already holding something)
+            let can_interact = !(right_hand.held_object.is_some() 
+                && matches!(interactable.primary_action, Interactions::PickUp));
+            
+            if can_interact {
+                commands.entity(hit_entity).trigger(Interacted);
+                found_hit = true;
+            }
+        }
     }
 
+    // If no interaction found, try to release held object
+    if !found_hit {
+        if let Some(held_entity) = right_hand.held_object {
+            if let Ok(held) = q_held.get(held_entity) {
+                if held.can_release {
+                    commands.entity(held_entity).remove::<Held>();
+                }
+            }
+        }
+    }
+}
+
+// Alternative implementation using mouse cursor position for more precise aiming
+fn interact_cursor_based(
+    _trigger: Trigger<Completed<UseInteract>>,
+    mut commands: Commands,
+    spatial_query: SpatialQuery,
+    camera_query: Query<(&Camera, &GlobalTransform)>,
+    window_query: Query<&Window, With<PrimaryWindow>>,
+    interactables: Query<&Interactable, Without<InteractionsDisabled>>,
+    mut right_hand: Single<&mut RightHand>,
+    q_held: Query<&Held>,
+) {
+    let mut found_hit: bool = false;
+
+    // Get camera and window for cursor-based raycast
+    let Ok((camera, camera_transform)) = camera_query.get_single() else {
+        return;
+    };
+    
+    let Ok(window) = window_query.get_single() else {
+        return;
+    };
+
+    // Get cursor position (use center of screen if no cursor)
+    let cursor_pos = window.cursor_position().unwrap_or_else(|| {
+        Vec2::new(window.width() / 2.0, window.height() / 2.0)
+    });
+
+    // Convert cursor position to world ray
+    if let Ok(ray) = camera.viewport_to_world(camera_transform, cursor_pos) {
+        // Perform raycast
+        if let Some(hit) = spatial_query.cast_ray(
+            ray.origin,
+            ray.direction,
+            INTERACTION_DISTANCE,
+            true, // solid hits only
+            &SpatialQueryFilter::default()
+                .with_mask([GameLayer::Default, GameLayer::Device])
+        ) {
+            let hit_entity = hit.entity;
+            
+            // Check if the hit entity is interactable
+            if let Ok(interactable) = interactables.get(hit_entity) {
+                // Check if we can interact
+                let can_interact = !(right_hand.held_object.is_some() 
+                    && matches!(interactable.primary_action, Interactions::PickUp));
+                
+                if can_interact {
+                    commands.entity(hit_entity).trigger(Interacted);
+                    found_hit = true;
+                }
+            }
+        }
+    }
+
+    // If no interaction found, try to release held object
     if !found_hit {
         if let Some(held_entity) = right_hand.held_object {
             if let Ok(held) = q_held.get(held_entity) {
@@ -96,6 +180,7 @@ pub enum Interactions {
     PickUp,
 }
 
+// Rest of your existing functions remain the same...
 fn big_red_button_interaction(
     trigger: Trigger<Interacted>,
     mut commands: Commands,
@@ -106,8 +191,6 @@ fn big_red_button_interaction(
     exit_door_shutter: Single<Entity, With<ExitDoorShutter>>,
     mut meshes: ResMut<Assets<Mesh>>,
 ) {
-    // right now we are getting the button rigidbody in the query
-    // but that's wrong because the trigger.target() is the collider
     let button_collider_of = q_collider_of.get(trigger.target()).unwrap();
     let target_location = q_body_transforms.get(button_collider_of.body).unwrap();
 
@@ -243,7 +326,5 @@ fn register_signal_spitter_interaction(
                 respawn_transform: Some(transform.clone()),
             },));
         }
-
-
     }
 }

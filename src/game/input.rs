@@ -14,7 +14,7 @@ impl InputContext for FixedInputContext {
 pub fn input_plugin(app: &mut App) {
     app
         .add_plugins(EnhancedInputPlugin)
-        .add_plugins(MeshPickingPlugin)
+        // .add_plugins(MeshPickingPlugin)
         // .insert_resource(MeshPickingSettings {
         //     require_markers: true,
         //     ..default()

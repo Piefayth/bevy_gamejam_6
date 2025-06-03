@@ -1,10 +1,9 @@
 use bevy::{
     pbr::{ExtendedMaterial, MaterialExtension},
     prelude::*,
-    render::render_resource::{AsBindGroup, ShaderRef},
+    render::render_resource::{AsBindGroup, ShaderRef, ShaderType},
 };
-use bevy_tween::{asset_tween_system, tween::{TargetAsset, Tween}, BevyTweenRegisterSystems};
-
+use bevy_tween::{asset_tween_system, tween::{TargetAsset}, BevyTweenRegisterSystems};
 use crate::game::signals::MaterialIntensityInterpolator;
 
 pub fn unlit_material_plugin(app: &mut App) {
@@ -13,7 +12,7 @@ pub fn unlit_material_plugin(app: &mut App) {
         .register_type::<UnlitMaterial>()
         .register_type::<TargetAsset<UnlitMaterial>>()
         .register_asset_reflect::<UnlitMaterial>()
-        .add_tween_systems(asset_tween_system::<MaterialIntensityInterpolator>()); 
+        .add_tween_systems(asset_tween_system::<MaterialIntensityInterpolator>());
 }
 
 pub type UnlitMaterial = ExtendedMaterial<StandardMaterial, UnlitMaterialExtension>;
@@ -22,16 +21,16 @@ pub type UnlitMaterial = ExtendedMaterial<StandardMaterial, UnlitMaterialExtensi
 #[reflect(Default)]
 pub struct UnlitMaterialExtension {
     #[uniform(100)]
-    pub intensity: f32,
-    #[uniform(101)]
-    pub alpha: f32,
-    #[uniform(102)]
-    pub blend_color: LinearRgba,
-    #[uniform(103)]
-    pub blend_factor: f32,
-    #[uniform(104)]
-    pub grey_threshold: f32,
+    pub params: UnlitParams,
+}
 
+#[derive(Reflect, ShaderType, Default, Debug, Clone)]
+pub struct UnlitParams {
+    pub intensity: f32,
+    pub alpha: f32,
+    pub blend_color: LinearRgba,
+    pub blend_factor: f32,
+    pub grey_threshold: f32,
 }
 
 impl MaterialExtension for UnlitMaterialExtension {

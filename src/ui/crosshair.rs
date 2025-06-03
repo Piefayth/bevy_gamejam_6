@@ -1,10 +1,11 @@
-use bevy::{color::palettes::css::{BLACK, ORANGE}, picking::pointer::PointerInteraction, prelude::*, window::CursorGrabMode};
+use avian3d::prelude::{SpatialQuery, SpatialQueryFilter};
+use bevy::{color::palettes::css::{BLACK, ORANGE}, picking::{pointer::{Location, PointerInteraction, PointerLocation}, PickSet}, prelude::*, render::camera::NormalizedRenderTarget, window::{CursorGrabMode, NormalizedWindowRef, PrimaryWindow, WindowRef}};
 use bevy_enhanced_input::events::Completed;
 
 use crate::{
     game::{
         input::SystemMenuOrCancel,
-        interaction::{Interactable, Interactions, InteractionsDisabled, INTERACTION_DISTANCE}, player::Held,
+        interaction::{Interactable, Interactions, InteractionsDisabled, INTERACTION_DISTANCE}, player::Held, GameLayer,
     }, GameState
 };
 
@@ -12,8 +13,9 @@ pub fn crosshair_plugin(app: &mut App) {
     app.add_sub_state::<CrosshairState>()
         .add_systems(OnEnter(CrosshairState::Shown), enable_crosshair)
         .add_systems(OnEnter(CrosshairState::Hidden), disable_crosshair)
-        .add_observer(toggle_aim_state)
-        .add_systems(Update, display_interaction_state);
+        .add_systems(Update, (display_interaction_state).run_if(in_state(CrosshairState::Shown)))
+        //.add_systems(PreUpdate, override_pointer_to_center.before(PickSet::Backend).after(PickSet::ProcessInput))
+        .add_observer(toggle_aim_state);
 }
 
 #[derive(SubStates, Clone, PartialEq, Eq, Hash, Debug, Default)]
@@ -38,7 +40,7 @@ pub struct LeftCrosshairText;
 pub struct RightCrosshairText;
 
 fn enable_crosshair(mut commands: Commands, mut primary_window: Single<&mut Window>) {
-    primary_window.cursor_options.grab_mode = CursorGrabMode::Confined;
+    primary_window.cursor_options.grab_mode = CursorGrabMode::Locked;
     primary_window.cursor_options.visible = false;
 
 commands
@@ -127,6 +129,42 @@ fn disable_crosshair(mut primary_window: Single<&mut Window>) {
     primary_window.cursor_options.visible = true;
 }
 
+// pub fn override_pointer_to_center(
+//     mut pointers: Query<&mut PointerLocation>,
+//     primary_window: Single<Entity, With<PrimaryWindow>>,
+//     windows: Query<&Window>,
+//     crosshair_state: Option<Res<State<CrosshairState>>>,
+// ) {
+//     // Only override when crosshair is shown (cursor is grabbed)
+//     if let Some(crosshair_state) = crosshair_state {
+//         if matches!(**crosshair_state, CrosshairState::Shown) {
+//             if let Ok(window) = windows.get(primary_window.entity()) {
+//                 let window_center = Vec2::new(window.width() / 2.0, window.height() / 2.0);
+                
+//                 // Create the center location for the primary window
+//                 let primary_window_target = NormalizedRenderTarget::Window(
+//                     WindowRef::Primary.normalize(Some(primary_window.entity())).unwrap()
+//                 );
+                
+//                 let center_location = Location {
+//                     target: primary_window_target.clone(),
+//                     position: window_center,
+//                 };
+                
+//                 // Only update pointers that are targeting the primary window
+//                 for mut pointer_location in &mut pointers {
+//                     if let Some(current_location) = &pointer_location.location {
+//                         // Check if this pointer is targeting the primary window
+//                         if current_location.target == primary_window_target {
+//                             pointer_location.location = Some(center_location.clone());
+//                         }
+//                     }
+//                 }
+//             }
+//         }
+//     }
+// }
+
 fn toggle_aim_state(
     _trigger: Trigger<Completed<SystemMenuOrCancel>>,
     mut commands: Commands,
@@ -143,7 +181,8 @@ fn toggle_aim_state(
 
 fn display_interaction_state(
     mut commands: Commands,
-    pointers: Query<&PointerInteraction>,
+    spatial_query: SpatialQuery,
+    camera_query: Query<&GlobalTransform, With<Camera>>,
     q_interactable: Query<&Interactable, (Without<InteractionsDisabled>)>,
     q_crosshair_reticle: Query<Entity, With<CrosshairReticle>>,
     crosshair_state: Option<Res<State<CrosshairState>>>,
@@ -153,21 +192,36 @@ fn display_interaction_state(
     if let Some(crosshair_state) = crosshair_state {
         if matches!(**crosshair_state, CrosshairState::Shown) {
             if let Ok(reticle_entity) = q_crosshair_reticle.single() {
-            // Get the interactable entity if one is hit
-            let hit_interactable = pointers
-                .iter()
-                .filter_map(|interaction| interaction.get_nearest_hit())
-                .find_map(|(entity, hit)| {
-                    if hit.depth <= INTERACTION_DISTANCE
-                    && q_interactable.contains(*entity)
-                    && !(maybe_held_object.is_some() 
-                            && q_interactable.get(*entity).map_or(false, |i| matches!(i.primary_action, Interactions::PickUp)))
+                // Get camera transform for raycast
+                let Ok(camera_transform) = camera_query.single() else {
+                    return;
+                };
+                
+                // Cast ray from camera forward
+                let ray_origin = camera_transform.translation();
+                let ray_direction = camera_transform.forward();
+                
+                // Get the interactable entity if one is hit
+                let hit_interactable = if let Some(hit) = spatial_query.cast_ray(
+                    ray_origin,
+                    ray_direction,
+                    INTERACTION_DISTANCE,
+                    true,
+                    &SpatialQueryFilter::default()
+                        .with_mask([GameLayer::Default, GameLayer::Device])
+                ) {
+                    let hit_entity = hit.entity;
+                    if q_interactable.contains(hit_entity)
+                        && !(maybe_held_object.is_some() 
+                                && q_interactable.get(hit_entity).map_or(false, |i| matches!(i.primary_action, Interactions::PickUp)))
                     {
-                        q_interactable.get(*entity).ok()
+                        q_interactable.get(hit_entity).ok()
                     } else {
                         None
                     }
-                });
+                } else {
+                    None
+                };
                 
                 let (border_color, background_color) = if hit_interactable.is_some() {
                     (

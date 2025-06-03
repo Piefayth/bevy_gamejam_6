@@ -10,10 +10,11 @@ use bevy::{
 };
 
 use crate::{
-    game, rendering::{
-        section_color_prepass::{DrawSection, ATTRIBUTE_SECTION_COLOR},
-        unlit_material::{UnlitMaterial, UnlitMaterialExtension},
-    }, GameState
+    GameState, game,
+    rendering::{
+        section_color_prepass::{ATTRIBUTE_SECTION_COLOR, DrawSection},
+        unlit_material::{UnlitMaterial, UnlitMaterialExtension, UnlitParams},
+    },
 };
 
 use super::asset_tag_components::{NeedsRigidBody, RoomWall, SignalSpitter};
@@ -85,17 +86,19 @@ fn on_start_loading(
 
     game_assets.cyan_signal_material = unlit_materials.add(UnlitMaterial {
         base: StandardMaterial {
-            base_color: LinearRgba::new(4./255., 149./255., 249./255., 1.0).into(),
+            base_color: LinearRgba::new(4. / 255., 149. / 255., 249. / 255., 1.0).into(),
             alpha_mode: AlphaMode::Blend,
             ..default()
         },
         extension: UnlitMaterialExtension {
-            intensity: 1.0,
-            alpha: 0.75,
-            blend_color: WHITE.into(),
-            blend_factor: 0.0,
-            ..default()
-        }
+            params: UnlitParams {
+                intensity: 1.0,
+                alpha: 0.75,
+                blend_color: WHITE.into(),
+                blend_factor: 0.0,
+                ..default()
+            },
+        },
     });
 
     commands.set_state(AssetLoaderState::Loading);
@@ -155,11 +158,13 @@ fn postprocess_assets(
                     let default_new_material = ExtendedMaterial {
                         base: old_material.clone(),
                         extension: UnlitMaterialExtension {
-                            intensity: 1.0,
-                            alpha: 1.0,
-                            blend_color: WHITE.into(),
-                            blend_factor: 0.0,
-                            grey_threshold: 0.2,
+                            params: UnlitParams {
+                                intensity: 1.0,
+                                alpha: 1.0,
+                                blend_color: WHITE.into(),
+                                blend_factor: 0.0,
+                                grey_threshold: 0.2,
+                            },
                         },
                     };
 
@@ -264,7 +269,8 @@ fn add_rigidbodies_to_colliders(
     q_exclusions: Query<(), With<SignalSpitter>>, // we will add these RBs later during registration
 ) {
     for (entity, nrb, child_of) in &q_colliders_without_rigidbody {
-        if !q_exclusions.contains(child_of.0) { // make sure the type of the PARENT is not in the exclusions
+        if !q_exclusions.contains(child_of.0) {
+            // make sure the type of the PARENT is not in the exclusions
             commands
                 .entity(entity)
                 .insert(nrb.kind)

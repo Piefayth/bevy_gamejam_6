@@ -213,9 +213,9 @@ fn picked_up_item(
                 q_collider_materials.get_mut(collider_entity)
             {
                 let material_to_update = unlit_materials.get_mut(material).unwrap();
-                material_to_update.extension.alpha = 0.75;
-                material_to_update.extension.blend_color = RED.into();
-                material_to_update.extension.blend_factor = 0.8;
+                material_to_update.extension.params.alpha = 0.75;
+                material_to_update.extension.params.blend_color = RED.into();
+                material_to_update.extension.params.blend_factor = 0.8;
                 material_to_update.base.alpha_mode = AlphaMode::Opaque;
 
                 commands
@@ -275,9 +275,9 @@ fn released_item(
         for collider_entity in releasable_colliders.iter() {
             if let Ok((collider_entity, material)) = q_collider_materials.get(collider_entity) {
                 let material_to_update = unlit_materials.get_mut(material).unwrap();
-                material_to_update.extension.alpha = 1.0;
-                material_to_update.extension.blend_color = WHITE.into();
-                material_to_update.extension.blend_factor = 0.0;
+                material_to_update.extension.params.alpha = 1.0;
+                material_to_update.extension.params.blend_color = WHITE.into();
+                material_to_update.extension.params.blend_factor = 0.0;
                 material_to_update.base.alpha_mode = AlphaMode::Opaque;
 
                 commands
@@ -356,11 +356,11 @@ fn project_held_placable_item(
                             if let Ok(handle) = q_material_handles.get(collider_entity) {
                                 if let Some(unlit_material) = unlit_materials.get_mut(handle) {
                                     if is_flat_surface {
-                                        unlit_material.extension.blend_color = WHITE.into();
-                                        unlit_material.extension.blend_factor = 0.0;
+                                        unlit_material.extension.params.blend_color = WHITE.into();
+                                        unlit_material.extension.params.blend_factor = 0.0;
                                     } else {
-                                        unlit_material.extension.blend_color = RED.into();
-                                        unlit_material.extension.blend_factor = 0.8;
+                                        unlit_material.extension.params.blend_color = RED.into();
+                                        unlit_material.extension.params.blend_factor = 0.8;
                                     }
                                 }
                             }
@@ -383,8 +383,8 @@ fn project_held_placable_item(
                     for collider_entity in rigid_body_colliders.iter() {
                         if let Ok(handle) = q_material_handles.get(collider_entity) {
                             if let Some(unlit_material) = unlit_materials.get_mut(handle) {
-                                unlit_material.extension.blend_color = RED.into();
-                                unlit_material.extension.blend_factor = 0.8;
+                                unlit_material.extension.params.blend_color = RED.into();
+                                unlit_material.extension.params.blend_factor = 0.8;
                             }
                         }
                     }
