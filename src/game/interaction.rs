@@ -6,7 +6,7 @@ use avian3d::prelude::{
     RigidBody, RigidBodyColliders, RotationInterpolation, Sensor, SleepingDisabled,
     TransformInterpolation,
 };
-use bevy::{picking::pointer::PointerInteraction, prelude::*};
+use bevy::{picking::pointer::PointerInteraction, prelude::*, transform};
 use bevy_enhanced_input::events::Completed;
 use bevy_tween::{
     combinator::{sequence, tween},
@@ -23,7 +23,7 @@ use crate::asset_management::{
 };
 
 use super::{
-    input::UseInteract, player::{Held, RightHand}, signals::Signal, GameLayer
+    dissolve_gate::Dissolveable, input::UseInteract, player::{Held, RightHand}, signals::{Signal, MAX_SIGNAL_TRAVEL_DIST}, GameLayer
 };
 
 pub fn interaction_plugin(app: &mut App) {
@@ -131,11 +131,10 @@ fn big_red_button_interaction(
         ))
         .id();
 
-    let target = TargetComponent::marker();
     commands.entity(signal_indicator).animation().insert(tween(
         Duration::from_secs(10),
         EaseKind::Linear,
-        target.with(translation(start_loc, start_loc + Vec3::Z * 500.)),
+        TargetComponent::marker().with(translation(start_loc, start_loc + Vec3::Z * MAX_SIGNAL_TRAVEL_DIST)),
     ));
 
     let target = TargetComponent::marker();
@@ -223,27 +222,26 @@ fn signal_spitter_interaction(
 
 fn register_signal_spitter_interaction(
     mut commands: Commands,
-    q_new_spitters: Query<(Entity, &Children), Added<SignalSpitter>>,
+    q_new_spitters: Query<(Entity, &Children, &Transform), Added<SignalSpitter>>,
     q_mesh: Query<Entity, With<Mesh3d>>,
 ) {
-    // Move the SignalSpitter marker onto the one and only child
-    
-    for (new_spitter, children) in &q_new_spitters {
+    for (new_spitter, children, transform) in &q_new_spitters {
         if children.len() > 1 {
             warn!("spitter cannot have more than one child");
             continue;
         }
-        
+
         if let Some(found_child) = children.iter().find(|&child| q_mesh.contains(child)) {
             commands
                 .entity(found_child)
-                .remove::<RigidBody>()  // move it to the parent
                 .observe(signal_spitter_interaction)
                 .insert((
                     Interactable::new(Interactions::PickUp),
                 ));
 
-            commands.entity(new_spitter).insert(RigidBody::Kinematic);
+            commands.entity(new_spitter).insert((RigidBody::Kinematic, Dissolveable {
+                respawn_transform: Some(transform.clone()),
+            },));
         }
 
 

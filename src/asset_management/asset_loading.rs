@@ -16,7 +16,7 @@ use crate::{
     }, GameState
 };
 
-use super::asset_tag_components::{NeedsRigidBody, RoomWall};
+use super::asset_tag_components::{NeedsRigidBody, RoomWall, SignalSpitter};
 
 pub(crate) fn assets_plugin(app: &mut App) {
     app.init_state::<AssetLoaderState>()
@@ -159,7 +159,7 @@ fn postprocess_assets(
                             alpha: 1.0,
                             blend_color: WHITE.into(),
                             blend_factor: 0.0,
-                            grey_threshold: 0.05,
+                            grey_threshold: 0.2,
                         },
                     };
 
@@ -260,12 +260,18 @@ fn postprocess_assets(
 
 fn add_rigidbodies_to_colliders(
     mut commands: Commands,
-    q_colliders_without_rigidbody: Query<(Entity, &NeedsRigidBody)>,
+    q_colliders_without_rigidbody: Query<(Entity, &NeedsRigidBody, &ChildOf)>,
+    q_exclusions: Query<(), With<SignalSpitter>>, // we will add these RBs later during registration
 ) {
-    for (entity, nrb) in &q_colliders_without_rigidbody {
-        commands
-            .entity(entity)
-            .insert(nrb.kind)
-            .remove::<NeedsRigidBody>();
+    for (entity, nrb, child_of) in &q_colliders_without_rigidbody {
+        if !q_exclusions.contains(child_of.0) { // make sure the type of the PARENT is not in the exclusions
+            commands
+                .entity(entity)
+                .insert(nrb.kind)
+                .remove::<NeedsRigidBody>();
+        } else {
+            commands.entity(entity).remove::<NeedsRigidBody>();
+            println!("ignored an exclusion");
+        }
     }
 }

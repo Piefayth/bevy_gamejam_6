@@ -31,9 +31,7 @@ use crate::{
 };
 
 use super::{
-    GameLayer,
-    input::{FixedInputContext, Jump, Look, Movement, UpdateInputContext, UseInteract},
-    interaction::{Interactable, InteractionsDisabled},
+    dissolve_gate::handle_dissolve_collisions, input::{FixedInputContext, Jump, Look, Movement, UpdateInputContext, UseInteract}, interaction::{Interactable, InteractionsDisabled}, GameLayer
 };
 
 pub fn player_plugin(app: &mut App) {
@@ -105,7 +103,7 @@ fn spawn_player(
         TransformInterpolation,
         CollisionLayers::new(GameLayer::Player, [GameLayer::Default, GameLayer::Device]),
         CollisionEventsEnabled,
-    ));
+    )).observe(handle_dissolve_collisions);
 
     // set camera rotation to away from origin.
     **camera = camera.looking_at(Vec3::ZERO, Vec3::Y);

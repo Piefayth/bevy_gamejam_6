@@ -1,6 +1,7 @@
 use avian3d::{prelude::{Gravity, PhysicsDebugPlugin, PhysicsLayer}, PhysicsPlugins};
 use bevy::prelude::*;
 use bevy_tween::{bevy_time_runner::{TimeRunner, TimeRunnerEnded, TimeSpan, TimeSpanProgress}, TweenSystemSet};
+use dissolve_gate::dissolve_gate_plugin;
 use input::input_plugin;
 use interaction::interaction_plugin;
 use player::player_plugin;
@@ -12,6 +13,7 @@ pub mod input;
 pub mod interaction;
 pub mod signals;
 pub mod pressure_plate;
+pub mod dissolve_gate;
 
 pub fn gameplay_plugins(app: &mut App) {
     app.add_plugins((
@@ -22,6 +24,7 @@ pub fn gameplay_plugins(app: &mut App) {
         interaction_plugin,
         signals_plugin,
         pressure_plate_plugin,
+        dissolve_gate_plugin,
     ))
     .insert_resource(Gravity(Vec3::NEG_Y * 19.6));
 
@@ -38,6 +41,7 @@ enum GameLayer {
     Player,
     Signal,
     Device,
+    Dissolve,
     Ignore
 }
 
