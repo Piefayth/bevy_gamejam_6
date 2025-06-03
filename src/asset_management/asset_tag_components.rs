@@ -45,6 +45,13 @@ pub struct ExitDoorShutter {
     pub unused: bool,
 }
 
+// Note: This is the actual part that moves; we don't need a reference to the other bit
+#[derive(Component, Reflect)]
+#[reflect(Component)]
+pub struct PressurePlate {
+    pub unused: bool,
+}
+
 pub fn asset_tag_components_plugin(app: &mut App) {
     app.register_type::<RoomWall>()
         .register_type::<BigRedButton>()
@@ -52,5 +59,6 @@ pub fn asset_tag_components_plugin(app: &mut App) {
         .register_type::<WeightedCubeColors>()
         .register_type::<CubeSpitter>()
         .register_type::<NeedsRigidBody>()
-        .register_type::<ExitDoorShutter>();
+        .register_type::<ExitDoorShutter>()
+        .register_type::<PressurePlate>();
 }

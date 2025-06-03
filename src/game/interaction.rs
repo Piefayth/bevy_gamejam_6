@@ -36,7 +36,7 @@ pub fn interaction_plugin(app: &mut App) {
     );
 }
 
-pub const INTERACTION_DISTANCE: f32 = 20.;
+pub const INTERACTION_DISTANCE: f32 = 30.;
 
 fn interact(
     _trigger: Trigger<Completed<UseInteract>>,
@@ -190,7 +190,7 @@ fn weighted_cube_interaction(
 
 fn register_weighted_cube_interaction(
     mut commands: Commands,
-    q_new_buttons: Query<&Children, Added<WeightedCube>>,
+    q_new_buttons: Query<&RigidBodyColliders, (Added<RigidBodyColliders>, With<WeightedCube>)>,
     q_mesh: Query<Entity, With<Mesh3d>>,
 ) {
     for children in &q_new_buttons {

@@ -3,12 +3,17 @@ use bevy::{
     prelude::*,
     render::render_resource::{AsBindGroup, ShaderRef},
 };
+use bevy_tween::{asset_tween_system, tween::{TargetAsset, Tween}, BevyTweenRegisterSystems};
+
+use crate::game::signals::MaterialIntensityInterpolator;
 
 pub fn unlit_material_plugin(app: &mut App) {
     app
         .add_plugins(MaterialPlugin::<UnlitMaterial>::default())
         .register_type::<UnlitMaterial>()
-        .register_asset_reflect::<UnlitMaterial>(); 
+        .register_type::<TargetAsset<UnlitMaterial>>()
+        .register_asset_reflect::<UnlitMaterial>()
+        .add_tween_systems(asset_tween_system::<MaterialIntensityInterpolator>()); 
 }
 
 pub type UnlitMaterial = ExtendedMaterial<StandardMaterial, UnlitMaterialExtension>;

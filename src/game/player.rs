@@ -1,11 +1,9 @@
-use std::f32::consts::{self, FRAC_PI_4};
+use std::f32::consts::{self, FRAC_PI_2, FRAC_PI_4};
 
 use avian3d::{
     math::PI,
     prelude::{
-        Collider, ColliderDisabled, ColliderOf, CollisionLayers, LockedAxes, Physics, PhysicsSet,
-        RigidBody, RigidBodyColliders, RigidBodyDisabled, ShapeCastConfig, ShapeCaster, ShapeHits,
-        SpatialQuery, SpatialQueryFilter, TransformInterpolation,
+        Collider, ColliderDisabled, ColliderOf, CollisionEventsEnabled, CollisionLayers, LockedAxes, Physics, PhysicsSet, RigidBody, RigidBodyColliders, RigidBodyDisabled, ShapeCastConfig, ShapeCaster, ShapeHits, SpatialQuery, SpatialQueryFilter, TransformInterpolation
     },
 };
 use bevy::{
@@ -100,7 +98,8 @@ fn spawn_player(
         RightHand::default(),
         StateScoped(GameState::Playing),
         TransformInterpolation,
-        CollisionLayers::new(GameLayer::Player, [GameLayer::Default]),
+        CollisionLayers::new(GameLayer::Player, [GameLayer::Default, GameLayer::Device]),
+        CollisionEventsEnabled
     ));
 
     // set camera rotation to away from origin.
@@ -127,10 +126,11 @@ fn move_player(
 
             controller.basis(TnuaBuiltinWalk {
                 desired_velocity: direction * PLAYER_VELOCITY,
-                float_height: 2.0,
-                max_slope: FRAC_PI_4,
+                float_height: 4.0,
+                max_slope: FRAC_PI_2,
                 acceleration: 120.,
                 air_acceleration: 120.,
+                free_fall_extra_gravity: 100.,
                 ..default()
             });
         }
@@ -143,8 +143,9 @@ fn jump(mut controller: Single<&mut TnuaController>, input: Single<&Actions<Fixe
             if jump {
                 controller.action(TnuaBuiltinJump {
                     height: 8.0,
-                    takeoff_extra_gravity: 60.,
+                    takeoff_extra_gravity: 120.,
                     fall_extra_gravity: 60.,
+                    shorten_extra_gravity: 0.0,
                     ..default()
                 });
             }
@@ -176,7 +177,7 @@ fn rotate_camera(
     }
 }
 
-const CAMERA_HEIGHT: f32 = 6.0;
+const CAMERA_HEIGHT: f32 = 4.0;
 fn camera_follow_player(
     maybe_player: Option<Single<&Transform, With<Player>>>,
     mut camera: Single<&mut Transform, (With<MainCamera>, Without<Player>)>,
@@ -216,12 +217,12 @@ fn picked_up_item(
                 material_to_update.extension.alpha = 0.75;
                 material_to_update.extension.blend_color = RED.into();
                 material_to_update.extension.blend_factor = 0.8;
-                material_to_update.base.alpha_mode = AlphaMode::Blend;
+                material_to_update.base.alpha_mode = AlphaMode::Opaque;
 
                 commands
                     .entity(picked_up_collider)
                     .remove::<DrawSection>()
-                    //.insert(ColliderDisabled) we can't ever re-enable the collider if we do this, for reasons i do not understand
+                    .insert(CollisionLayers::new(GameLayer::Ignore, [GameLayer::Default]))
                     .insert(InteractionsDisabled)
                     .insert(Pickable::IGNORE);
 
@@ -252,9 +253,9 @@ fn picked_up_item(
             .with_max_distance(50.0)
             .with_query_filter(
                 SpatialQueryFilter::default()
-                    .with_mask(GameLayer::Default)
+                    .with_mask([GameLayer::Default, GameLayer::Device, GameLayer::Player])
                     .with_excluded_entities(excluded_entities),
-            ),
+            ).with_max_hits(1),
         );
     }
 }
@@ -282,7 +283,8 @@ fn released_item(
                 commands
                     .entity(collider_entity)
                     .insert(DrawSection)
-                    .remove::<ColliderDisabled>()
+                    // TODO: These layers might not be the same for every item we can hold?
+                    .insert(CollisionLayers::new(GameLayer::Device, [GameLayer::Default, GameLayer::Player, GameLayer::Signal, GameLayer::Device]))
                     .remove::<InteractionsDisabled>()
                     .insert(Pickable::default());
             }
@@ -314,7 +316,7 @@ fn project_held_placable_item(
             shape_caster.direction = camera_forward;
 
             // Use the first hit from the shape caster
-            if let Some(hit) = shape_hits.iter().next() {
+            if let Some(hit) = shape_hits.iter().min_by(|a, b| a.distance.partial_cmp(&b.distance).unwrap()) {
                 if let Ok(mut held_transform) = transforms.get_mut(held_entity) {
                     let camera_pos = camera.translation();
                     let camera_forward = camera.forward();

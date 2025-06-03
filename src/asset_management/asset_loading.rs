@@ -98,12 +98,6 @@ fn on_start_loading(
         }
     });
 
-        // game_assets.cyan_signal_material = standard_materials.add(StandardMaterial {
-        //     base_color: LinearRgba::new(4., 149., 249., 255.).into(),
-        //     alpha_mode: AlphaMode::Opaque,
-        //     ..default()
-        // });
-
     commands.set_state(AssetLoaderState::Loading);
 }
 
