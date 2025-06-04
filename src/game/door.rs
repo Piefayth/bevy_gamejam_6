@@ -22,7 +22,7 @@ use super::{
 };
 
 pub fn door_plugin(app: &mut App) {
-    app.add_systems(Update, (register_doors, update_powered_timers));
+    app.add_systems(FixedPreUpdate, register_doors).add_systems(FixedUpdate, update_powered_timers);
 }
 
 fn register_doors(
@@ -100,7 +100,7 @@ fn register_doors(
 #[derive(Component)]
 pub struct PoweredTimer(Timer);
 
-const DOOR_POLE_POWER_DURATION_SEC: u64 = 5;
+const DOOR_POLE_POWER_DURATION_SEC: u64 = 2;
 fn door_pole_direct_signal(
     trigger: Trigger<DirectSignal>,
     mut commands: Commands,
@@ -114,7 +114,6 @@ fn door_pole_direct_signal(
                 TimerMode::Once,
             )),
         ));
-        // All door animation logic moved to power state observers
     }
 }
 

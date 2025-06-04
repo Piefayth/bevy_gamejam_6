@@ -1,14 +1,13 @@
 use std::time::Duration;
 
 use avian3d::prelude::{
-    Collider, ColliderConstructor, ColliderOf, CollisionEventsEnabled, CollisionLayers, ExternalImpulse, OnCollisionStart, RigidBody, RigidBodyColliders, RotationInterpolation, Sensor, SpatialQuery, SpatialQueryFilter, TransformInterpolation
+    Collider, ColliderConstructor, ColliderOf, CollisionEventsEnabled, CollisionLayers,
+    ExternalImpulse, OnCollisionStart, RigidBody, RigidBodyColliders, RotationInterpolation,
+    Sensor, SpatialQuery, SpatialQueryFilter, TransformInterpolation,
 };
 use bevy::prelude::*;
 use bevy_tween::{
-    combinator::{sequence, tween},
-    interpolate::translation,
-    prelude::{AnimationBuilderExt, EaseKind, Interpolator},
-    tween::{AnimationTarget, IntoTarget, TargetAsset, TargetComponent},
+    bevy_time_runner::TimeRunner, combinator::{sequence, tween}, interpolate::translation, prelude::{AnimationBuilderExt, EaseKind, Interpolator}, tween::{AnimationTarget, IntoTarget, TargetAsset, TargetComponent}
 };
 
 use crate::{
@@ -21,11 +20,7 @@ use crate::{
 };
 
 use super::{
-    door::PoweredTimer, 
-    pressure_plate::{POWER_ANIMATION_DURATION_SEC, POWER_MATERIAL_INTENSITY, PoweredBy}, 
-    signals::{DirectSignal, MaterialIntensityInterpolator, Powered, Signal}, 
-    DespawnOnFinish, 
-    GameLayer
+    door::PoweredTimer, pressure_plate::{PoweredBy, POWER_ANIMATION_DURATION_SEC, POWER_MATERIAL_INTENSITY}, signals::{DirectSignal, MaterialIntensityInterpolator, Powered, Signal}, standing_cube_spitter::Tombstone, DespawnOnFinish, GameLayer
 };
 
 #[derive(Component)]
@@ -42,34 +37,34 @@ impl CubeDischarge {
 }
 
 // Constants for cube discharge detection
-const CUBE_DISCHARGE_RADIUS: f32 = 3.0;
+const CUBE_DISCHARGE_RADIUS: f32 = 6.0;
 
 // Component to track if cube is held (you'll need to add this when cubes are picked up)
 #[derive(Component)]
 pub struct Held;
 
 pub fn cube_plugin(app: &mut App) {
-    app.add_systems(
-        Update,
-        (
-            register_cube_signals,
-            cube_receive_power,
-            cube_discharge_detection, // New system for spherical shape cast
-        )
-            .run_if(in_state(GameState::Playing)),
-    );
+    app.add_systems(FixedPreUpdate, (register_cube_signals,))
+        .add_systems(
+            FixedUpdate,
+            (
+                cube_receive_power,
+                cube_discharge_detection,
+                update_cube_discharge_timers,
+            )
+                .run_if(in_state(GameState::Playing)),
+        );
 }
 
 fn cube_discharge_detection(
     mut commands: Commands,
     q_cubes: Query<
-        (Entity, &GlobalTransform), 
+        (Entity, &GlobalTransform),
         (
-            With<WeightedCube>, 
-            With<Powered>, 
-            Without<PoweredBy>, 
-            Without<Held>
-        )
+            With<WeightedCube>,
+            With<Powered>,
+            Without<PoweredBy>,
+        ),
     >,
     spatial_query: SpatialQuery,
     q_collider_of: Query<&ColliderOf>,
@@ -84,11 +79,7 @@ fn cube_discharge_detection(
             &detection_shape,
             cube_position,
             Quat::IDENTITY,
-            &SpatialQueryFilter::from_mask([
-                GameLayer::Player, 
-                GameLayer::Device, 
-                GameLayer::Default
-            ]),
+            &SpatialQueryFilter::from_mask([GameLayer::Device]),
         );
 
         // Check each overlapping entity
@@ -114,9 +105,10 @@ fn cube_discharge_detection(
             commands.trigger_targets(DirectSignal, target_entity);
 
             // Depower the cube and add discharge cooldown
-            commands.entity(cube_entity)
+            commands
+                .entity(cube_entity)
                 .remove::<Powered>()
-                .insert(CubeDischarge::new());
+                .try_insert(CubeDischarge::new());
 
             // Break after first discharge to prevent multiple simultaneous discharges
             break;
@@ -150,7 +142,7 @@ fn update_cube_discharge_timers(
 ) {
     for (cube_entity, mut discharge) in q_discharging_cubes.iter_mut() {
         discharge.timer.tick(time.delta());
-        
+
         if discharge.timer.finished() {
             // Remove the discharge cooldown component
             commands.entity(cube_entity).remove::<CubeDischarge>();
@@ -165,7 +157,7 @@ fn cube_direct_signal(
     q_discharging: Query<(), With<CubeDischarge>>, // Check if cube is in cooldown
 ) {
     let target = trigger.target();
-    
+
     // Don't power cubes that are already powered or in discharge cooldown
     if !q_powered.contains(target) && !q_discharging.contains(target) {
         commands.entity(target).insert(Powered);
@@ -210,7 +202,7 @@ fn cube_receive_power(
 fn cube_lose_power(
     trigger: Trigger<OnRemove, Powered>,
     mut commands: Commands,
-    q_cube: Query<(Entity, &RigidBodyColliders), With<WeightedCube>>,
+    q_cube: Query<(Entity, &RigidBodyColliders), (With<WeightedCube>, Without<Tombstone>)>,
     q_unlit_objects: Query<&MeshMaterial3d<UnlitMaterial>>,
     unlit_materials: Res<Assets<UnlitMaterial>>,
 ) {
@@ -219,7 +211,8 @@ fn cube_lose_power(
             if let Ok(material_handle) = q_unlit_objects.get(collider_entity) {
                 if let Some(material) = unlit_materials.get(material_handle) {
                     let current_intensity = material.extension.params.intensity;
-                    let intensity_ratio = (current_intensity - 1.0) / (POWER_MATERIAL_INTENSITY - 1.0);
+                    let intensity_ratio =
+                        (current_intensity - 1.0) / (POWER_MATERIAL_INTENSITY - 1.0);
                     let duration_secs = POWER_ANIMATION_DURATION_SEC * intensity_ratio.max(0.1);
 
                     commands
@@ -257,7 +250,8 @@ fn register_cube_signals(
         commands
             .entity(cube_entity)
             .observe(cube_direct_signal)
-            .observe(cube_lose_power);
+            .observe(cube_lose_power)
+            ;
 
         for cube_child in cube_children.iter() {
             if let Ok(material_handle) = q_unlit_objects.get(cube_child) {
@@ -274,7 +268,8 @@ fn register_cube_signals(
                         AnimationTarget,
                         MeshMaterial3d(unlit_materials.add(old_material)),
                     ))
-                    .observe(cube_consume_signal);
+                    .observe(cube_consume_signal)
+                    ;
             }
         }
     }

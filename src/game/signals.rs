@@ -26,7 +26,7 @@ use super::{
 
 pub fn signals_plugin(app: &mut App) {
     app.add_systems(
-        Update,
+        FixedUpdate,
         (
             despawn_after_system,
             signal_after_delay,
@@ -63,7 +63,7 @@ pub fn default_signal_collisions(
     trigger: Trigger<OnCollisionStart>,
     mut commands: Commands,
     q_signals: Query<(), With<Signal>>,
-    q_powered: Query<(), With<Powered>>,
+    q_powered: Query<(), (With<Powered>, Without<PoweredTimer>)>,
 ) {
     if let Some(signaled_body) = trigger.body {
         if q_signals.contains(trigger.collider) && !q_powered.contains(trigger.collider) && !q_powered.contains(signaled_body) {

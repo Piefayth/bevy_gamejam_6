@@ -16,7 +16,7 @@ use super::{
 };
 
 pub fn dissolve_gate_plugin(app: &mut App) {
-    app.add_systems(Update, (register_dissolve_gates,));
+    app.add_systems(FixedPreUpdate, (register_dissolve_gates,));
 }
 
 // Indicates a device can be dissolved

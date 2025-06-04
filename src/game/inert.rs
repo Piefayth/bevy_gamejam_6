@@ -19,7 +19,7 @@ use super::{
 };
 
 pub fn inert_plugin(app: &mut App) {
-    app.add_systems(Update, register_inert);
+    app.add_systems(FixedPreUpdate, register_inert);
 }
 
 fn register_inert(

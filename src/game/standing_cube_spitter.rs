@@ -16,6 +16,7 @@ use bevy_tween::{
 };
 
 use crate::{
+    GameState,
     asset_management::{
         asset_loading::GameAssets,
         asset_tag_components::{
@@ -37,12 +38,12 @@ use super::{
 
 pub fn standing_cube_spitter_plugin(app: &mut App) {
     app.add_systems(
-        Update,
-        (
-            register_standing_cube_spitter_signals,
-            handle_continuous_cube_emission,
-            cube_after_delay,
-        ),
+        FixedPreUpdate,
+        (register_standing_cube_spitter_signals,),
+    )
+    .add_systems(
+        FixedLast,
+        (handle_continuous_cube_emission, cube_after_delay).run_if(in_state(GameState::Playing)),
     );
 }
 
@@ -127,6 +128,10 @@ fn handle_continuous_cube_emission(
     }
 }
 
+// we can't use try_insert with bevy_tween, so we need to mark untweenable objects
+#[derive(Component)]
+pub struct Tombstone;
+
 fn cube_spitter_direct_signal(
     trigger: Trigger<DirectSignal>,
     mut commands: Commands,
@@ -172,8 +177,10 @@ fn cube_spitter_direct_signal(
         }
 
         for object in spitter_owned_objects.iter() {
-            commands.entity(*object).despawn();
+            println!("despawning obj {:?}", object);
+            commands.entity(*object).insert(Tombstone).despawn()
         }
+        
         spitter_owned_objects.clear();
 
         let cube_id = commands
@@ -196,6 +203,7 @@ fn cube_spitter_direct_signal(
 
         // add the new cube to the owned objects
         spitter_owned_objects.0.push(cube_id);
+        println!("pushing obj {}", cube_id);
     }
 }
 

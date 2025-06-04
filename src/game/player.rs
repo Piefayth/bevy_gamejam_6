@@ -3,8 +3,8 @@ use std::f32::consts::FRAC_PI_2;
 use avian3d::{
     math::PI,
     prelude::{
-        Collider, CollisionEventsEnabled, CollisionLayers,
-        LockedAxes, RigidBody, RigidBodyColliders, RigidBodyDisabled, ShapeCaster, ShapeHits, SpatialQueryFilter,
+        Collider, CollisionEventsEnabled, CollisionLayers, LockedAxes, RigidBody,
+        RigidBodyColliders, RigidBodyDisabled, ShapeCaster, ShapeHits, SpatialQueryFilter,
         TransformInterpolation,
     },
 };
@@ -284,7 +284,8 @@ fn released_item(
                 commands
                     .entity(collider_entity)
                     // TODO: These layers might not be the same for every item we can hold?
-                    .try_insert((   // entity mightve been despawned
+                    .try_insert((
+                        // entity mightve been despawned
                         CollisionLayers::new(
                             GameLayer::Device,
                             [
@@ -307,7 +308,7 @@ fn released_item(
             .remove::<ShapeHits>();
         commands
             .entity(releasable_entity)
-            .remove::<RigidBodyDisabled>();
+            .try_remove::<RigidBodyDisabled>();
     }
 }
 

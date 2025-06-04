@@ -1,20 +1,25 @@
 use std::time::Duration;
 
-use avian3d::prelude::{
-    Collider, CollisionEventsEnabled, CollisionLayers, RigidBodyColliders,
-};
+use avian3d::prelude::{Collider, CollisionEventsEnabled, CollisionLayers, RigidBodyColliders};
 use bevy::prelude::*;
 use bevy_tween::{
-    bevy_time_runner::TimeSpan, combinator::{sequence, tween}, prelude::{AnimationBuilderExt, EaseKind}, tween::{AnimationTarget, TargetAsset}
+    bevy_time_runner::TimeSpan,
+    combinator::{sequence, tween},
+    prelude::{AnimationBuilderExt, EaseKind},
+    tween::{AnimationTarget, TargetAsset},
 };
 
 use crate::{
-    asset_management::asset_tag_components::SignalSpitter,
-    rendering::unlit_material::UnlitMaterial,
+    asset_management::asset_tag_components::SignalSpitter, rendering::unlit_material::UnlitMaterial, GameState,
 };
 
 use super::{
-    pressure_plate::{POWER_ANIMATION_DURATION_SEC, POWER_MATERIAL_INTENSITY}, signals::{default_signal_collisions, DirectSignal, MaterialIntensityInterpolator, Powered, SignalAfterDelay}, DespawnOnFinish, GameLayer
+    DespawnOnFinish, GameLayer,
+    pressure_plate::{POWER_ANIMATION_DURATION_SEC, POWER_MATERIAL_INTENSITY},
+    signals::{
+        DirectSignal, MaterialIntensityInterpolator, Powered, SignalAfterDelay,
+        default_signal_collisions,
+    },
 };
 
 // Component to track continuous emission state
@@ -32,7 +37,8 @@ impl Default for ContinuousEmission {
 }
 
 pub fn signal_spitter_plugin(app: &mut App) {
-    app.add_systems(Update, (register_signal_spitter_signals, handle_continuous_signal_emission));
+    app.add_systems(FixedPreUpdate, (register_signal_spitter_signals,))
+        .add_systems(FixedUpdate, handle_continuous_signal_emission.run_if(in_state(GameState::Playing)));
 }
 
 fn signal_spitter_direct_signal(
@@ -130,15 +136,20 @@ fn register_signal_spitter_signals(
 
 fn signal_spitter_receive_power(
     trigger: Trigger<OnAdd, Powered>,
-    mut commands: Commands, 
-    q_signal_spitter: Query<(Entity, &RigidBodyColliders, &ContinuousEmission), With<SignalSpitter>>,
+    mut commands: Commands,
+    q_signal_spitter: Query<
+        (Entity, &RigidBodyColliders, &ContinuousEmission),
+        With<SignalSpitter>,
+    >,
     q_unlit_objects: Query<&MeshMaterial3d<UnlitMaterial>>,
     unlit_materials: Res<Assets<UnlitMaterial>>,
     q_tween: Query<(), With<TimeSpan>>,
     q_children: Query<&Children, With<Collider>>,
     time: Res<Time>,
 ) {
-    if let Ok((signal_spitter, signal_spitter_children, continuous_emission)) = q_signal_spitter.get(trigger.target()) {
+    if let Ok((signal_spitter, signal_spitter_children, continuous_emission)) =
+        q_signal_spitter.get(trigger.target())
+    {
         for collider_entity in signal_spitter_children.iter() {
             if let Ok(collider_children) = q_children.get(collider_entity) {
                 for child in collider_children.iter() {
@@ -208,7 +219,8 @@ fn signal_spitter_lose_power(
             if let Ok(material_handle) = q_unlit_objects.get(collider_entity) {
                 if let Some(material) = unlit_materials.get(material_handle) {
                     let current_intensity = material.extension.params.intensity;
-                    let intensity_ratio = (current_intensity - 1.0) / (POWER_MATERIAL_INTENSITY - 1.0);
+                    let intensity_ratio =
+                        (current_intensity - 1.0) / (POWER_MATERIAL_INTENSITY - 1.0);
                     let duration_secs = POWER_ANIMATION_DURATION_SEC * intensity_ratio.max(0.1);
 
                     commands
@@ -237,7 +249,7 @@ fn signal_spitter_lose_power(
                 }
             }
         }
-    }    
+    }
 }
 
 fn handle_continuous_signal_emission(

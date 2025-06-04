@@ -1,6 +1,9 @@
-use avian3d::{prelude::{Collider, Gravity, PhysicsLayer}, PhysicsPlugins};
+use avian3d::{
+    PhysicsPlugins,
+    prelude::{Collider, Gravity, PhysicsLayer},
+};
 use bevy::prelude::*;
-use bevy_tween::{bevy_time_runner::TimeRunnerEnded, TweenSystemSet};
+use bevy_tween::{TweenSystemSet, bevy_time_runner::TimeRunnerEnded};
 use cube_spitter::cube_spitter_plugin;
 use dissolve_gate::dissolve_gate_plugin;
 use door::door_plugin;
@@ -14,18 +17,18 @@ use signals::signals_plugin;
 use standing_cube_spitter::standing_cube_spitter_plugin;
 use weighted_cube::cube_plugin;
 
-pub mod player;
-pub mod input;
-pub mod interaction;
-pub mod signals;
-pub mod pressure_plate;
+pub mod cube_spitter;
 pub mod dissolve_gate;
 pub mod door;
 pub mod inert;
+pub mod input;
+pub mod interaction;
+pub mod player;
+pub mod pressure_plate;
 pub mod signal_spitter;
-pub mod cube_spitter;
-pub mod weighted_cube;
+pub mod signals;
 pub mod standing_cube_spitter;
+pub mod weighted_cube;
 
 pub fn gameplay_plugins(app: &mut App) {
     app.add_plugins((
@@ -42,14 +45,14 @@ pub fn gameplay_plugins(app: &mut App) {
         signal_spitter_plugin,
         cube_spitter_plugin,
         cube_plugin,
-        standing_cube_spitter_plugin
+        standing_cube_spitter_plugin,
     ))
     .insert_resource(Gravity(Vec3::NEG_Y * 19.6));
 
-    app.add_systems( PostUpdate,
-  despawn_tween_on_finish
-    .after(TweenSystemSet::ApplyTween)
-);
+    app.add_systems(
+        PostUpdate,
+        despawn_tween_on_finish.after(TweenSystemSet::ApplyTween),
+    );
 }
 
 #[derive(PhysicsLayer, Default)]
@@ -60,25 +63,25 @@ pub enum GameLayer {
     Signal,
     Device,
     Dissolve,
-    Ignore
+    Ignore,
 }
 
 #[derive(Component)]
 pub struct DespawnOnFinish;
 
 pub fn despawn_tween_on_finish(
-  mut time_runner_ended_reader: EventReader<TimeRunnerEnded>,
-  q_children: Query<&Children>,
-  q_no_collider: Query<(), Without<Collider>>,
-  mut commands: Commands,
+    mut time_runner_ended_reader: EventReader<TimeRunnerEnded>,
+    q_children: Query<&Children>,
+    q_no_collider: Query<(), Without<Collider>>,
+    mut commands: Commands,
 ) {
-  for event in time_runner_ended_reader.read() {
-    if let Ok(children) = q_children.get(event.time_runner) {
-      for child in children.iter() {
-        if q_no_collider.contains(child) {
-          commands.entity(child).despawn();
+    for event in time_runner_ended_reader.read() {
+        if let Ok(children) = q_children.get(event.time_runner) {
+            for child in children.iter() {
+                if q_no_collider.contains(child) {
+                    commands.entity(child).try_despawn();
+                }
+            }
         }
-      }
     }
-  }
 }

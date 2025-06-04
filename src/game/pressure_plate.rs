@@ -4,7 +4,7 @@ use super::{
 };
 use crate::{
     asset_management::asset_tag_components::{ChargePad, PressurePlate, WeightedCube},
-    rendering::unlit_material::UnlitMaterial,
+    rendering::unlit_material::UnlitMaterial, GameState,
 };
 use avian3d::prelude::*;
 use bevy::{math::VectorSpace, prelude::*};
@@ -17,15 +17,13 @@ use bevy_tween::{
 use std::{collections::HashSet, time::Duration};
 
 /// Component to store pressure plate detection data
-#[derive(Component)]
-#[derive(Default)]
+#[derive(Component, Default)]
 pub struct PressurePlateDetector {
     /// Entities currently overlapping with this pressure plate
     pub overlapping_entities: HashSet<Entity>,
     /// Whether the plate is currently pressed (has any overlapping entities)
     pub is_pressed: bool,
 }
-
 
 /// Component for ChargePad detection configuration
 #[derive(Component)]
@@ -85,15 +83,12 @@ const DETECTION_OFFSET: Vec3 = Vec3::new(0.0, 5.0, 0.0);
 
 pub fn pressure_plate_plugin(app: &mut App) {
     app.add_systems(
-        Update,
-        (
-            register_pressure_plates,
-            register_charge_pads,
-            update_pressure_plate_overlaps,
-            update_charge_pad_overlaps,
-            //debug_draw_pressure_plate_detection,
-        )
-            .chain(),
+        FixedPreUpdate,
+        (register_pressure_plates, register_charge_pads),
+    )
+    .add_systems(
+        FixedUpdate,
+        (update_pressure_plate_overlaps, update_charge_pad_overlaps).run_if(in_state(GameState::Playing)),
     );
 }
 
@@ -339,9 +334,7 @@ fn on_charge_pad_entity_left(
                             .remove::<PoweredBy>();
                     } else {
                         // cubes RETAIN power
-                        commands
-                            .entity(leaving_entity)
-                            .remove::<PoweredBy>();
+                        commands.entity(leaving_entity).remove::<PoweredBy>();
                     }
                 }
             }
@@ -539,9 +532,7 @@ fn charge_pad_lose_power(
     q_powered_by: Query<&PoweredBy>,
     q_cubes: Query<&WeightedCube>,
 ) {
-    if let Ok((charge_pad, charge_pad_children, detector)) =
-        q_charge_pad.get(trigger.target())
-    {
+    if let Ok((charge_pad, charge_pad_children, detector)) = q_charge_pad.get(trigger.target()) {
         // Remove power from any entity this charge pad is currently charging
         if let Some(charged_entity) = detector.charged_entity {
             // Verify the entity is actually powered by this charge pad
@@ -554,11 +545,8 @@ fn charge_pad_lose_power(
                             .remove::<PoweredBy>();
                     } else {
                         // cubes RETAIN power
-                        commands
-                            .entity(charged_entity)
-                            .remove::<PoweredBy>();
+                        commands.entity(charged_entity).remove::<PoweredBy>();
                     }
-
                 }
             }
         }

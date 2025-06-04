@@ -24,7 +24,7 @@ use super::{
 };
 
 pub fn cube_spitter_plugin(app: &mut App) {
-    app.add_systems(Update, register_cube_spitter_signals);
+    app.add_systems(FixedPreUpdate, register_cube_spitter_signals);
 }
 pub fn cube_spitter_direct_signal(
     trigger: Trigger<DirectSignal>,

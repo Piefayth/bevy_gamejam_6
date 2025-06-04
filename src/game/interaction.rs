@@ -14,12 +14,12 @@ use bevy_tween::{
     tween::{AnimationTarget, TargetComponent},
 };
 
-use crate::asset_management::{
+use crate::{asset_management::{
     asset_loading::GameAssets,
     asset_tag_components::{
         BigRedButton, CubeSpitter, ExitDoorShutter, SignalSpitter, StandingCubeSpitter, WeightedCube
     },
-};
+}, GameState};
 
 use super::{
     GameLayer,
@@ -31,7 +31,7 @@ use super::{
 
 pub fn interaction_plugin(app: &mut App) {
     app.add_observer(interact).add_systems(
-        Update,
+        FixedPreUpdate,
         (
             register_big_red_button_interaction,
             register_weighted_cube_interaction,
