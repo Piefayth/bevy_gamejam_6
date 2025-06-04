@@ -1,6 +1,7 @@
 use avian3d::{prelude::{Collider, Gravity, PhysicsDebugPlugin, PhysicsLayer}, PhysicsPlugins};
 use bevy::prelude::*;
 use bevy_tween::{bevy_time_runner::{TimeRunner, TimeRunnerEnded, TimeSpan, TimeSpanProgress}, TweenSystemSet};
+use cube_spitter::cube_spitter_plugin;
 use dissolve_gate::dissolve_gate_plugin;
 use door::door_plugin;
 use inert::inert_plugin;
@@ -20,6 +21,7 @@ pub mod dissolve_gate;
 pub mod door;
 pub mod inert;
 pub mod signal_spitter;
+pub mod cube_spitter;
 
 pub fn gameplay_plugins(app: &mut App) {
     app.add_plugins((
@@ -34,6 +36,7 @@ pub fn gameplay_plugins(app: &mut App) {
         door_plugin,
         inert_plugin,
         signal_spitter_plugin,
+        cube_spitter_plugin,
     ))
     .insert_resource(Gravity(Vec3::NEG_Y * 19.6));
 

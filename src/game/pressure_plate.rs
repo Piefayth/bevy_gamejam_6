@@ -1,6 +1,9 @@
-use super::{signals::{MaterialIntensityInterpolator, Powered, DirectSignal}, DespawnOnFinish, GameLayer};
+use super::{
+    DespawnOnFinish, GameLayer,
+    signals::{DirectSignal, MaterialIntensityInterpolator, Powered},
+};
 use crate::{
-    asset_management::asset_tag_components::{ChargePad, PressurePlate},
+    asset_management::asset_tag_components::{ChargePad, PressurePlate, WeightedCube},
     rendering::unlit_material::UnlitMaterial,
 };
 use avian3d::{parry::bounding_volume::Aabb, prelude::*};
@@ -31,23 +34,26 @@ impl Default for PressurePlateDetector {
     }
 }
 
-/// Component for ChargePad signal emission configuration
+/// Component for ChargePad detection configuration
 #[derive(Component)]
-pub struct ChargePadSignalEmitter {
-    /// Timer for signal emission intervals
-    pub timer: Timer,
+pub struct ChargePadDetector {
     /// Size of the detection area above the charge pad
     pub detection_size: Vec3,
     /// Offset from the charge pad center for detection
     pub detection_offset: Vec3,
+    /// Currently charged entity (only one at a time)
+    pub charged_entity: Option<Entity>,
+    /// Entities currently overlapping with this charge pad
+    pub overlapping_entities: HashSet<Entity>,
 }
 
-impl Default for ChargePadSignalEmitter {
+impl Default for ChargePadDetector {
     fn default() -> Self {
         Self {
-            timer: Timer::from_seconds(2.0, TimerMode::Repeating), // Default 2 seconds
             detection_size: Vec3::new(12.0, 8.0, 12.0), // Slightly larger than pressure plate
             detection_offset: Vec3::new(0.0, 4.0, 0.0), // Above the charge pad
+            charged_entity: None,
+            overlapping_entities: HashSet::new(),
         }
     }
 }
@@ -66,6 +72,20 @@ pub struct PressurePlateReleased {
     pub last_entity: Option<Entity>,
 }
 
+/// Observer event fired when an entity enters a charge pad
+#[derive(Event)]
+pub struct ChargePadEntityEntered {
+    pub charge_pad_entity: Entity,
+    pub entity: Entity,
+}
+
+/// Observer event fired when an entity leaves a charge pad
+#[derive(Event)]
+pub struct ChargePadEntityLeft {
+    pub charge_pad_entity: Entity,
+    pub entity: Entity,
+}
+
 // Constants for detection box
 const DETECTION_SIZE: Vec3 = Vec3::new(5.0, 9.0, 5.0);
 const DETECTION_OFFSET: Vec3 = Vec3::new(0.0, 5.0, 0.0);
@@ -77,7 +97,7 @@ pub fn pressure_plate_plugin(app: &mut App) {
             register_pressure_plates,
             register_charge_pads,
             update_pressure_plate_overlaps,
-            update_charge_pad_signal_emission,
+            update_charge_pad_overlaps,
             //debug_draw_pressure_plate_detection,
         )
             .chain(),
@@ -87,7 +107,7 @@ pub fn pressure_plate_plugin(app: &mut App) {
 fn debug_draw_pressure_plate_detection(
     mut gizmos: Gizmos,
     q_plates: Query<(&GlobalTransform, &PressurePlateDetector), With<PressurePlate>>,
-    q_charge_pads: Query<(&GlobalTransform, &ChargePadSignalEmitter), With<ChargePad>>,
+    q_charge_pads: Query<(&GlobalTransform, &ChargePadDetector), With<ChargePad>>,
 ) {
     for (plate_transform, detector) in q_plates.iter() {
         let detection_center = plate_transform.translation() + DETECTION_OFFSET;
@@ -104,12 +124,16 @@ fn debug_draw_pressure_plate_detection(
     }
 
     // Debug draw charge pad detection areas
-    for (charge_pad_transform, emitter) in q_charge_pads.iter() {
-        let detection_center = charge_pad_transform.translation() + emitter.detection_offset;
-        let color = Color::srgb(0.0, 0.0, 1.0); // Blue for charge pads
+    for (charge_pad_transform, detector) in q_charge_pads.iter() {
+        let detection_center = charge_pad_transform.translation() + detector.detection_offset;
+        let color = if detector.charged_entity.is_some() {
+            Color::srgb(1.0, 1.0, 0.0) // Yellow when charging something
+        } else {
+            Color::srgb(0.0, 0.0, 1.0) // Blue when idle
+        };
 
         gizmos.cuboid(
-            Transform::from_translation(detection_center).with_scale(emitter.detection_size),
+            Transform::from_translation(detection_center).with_scale(detector.detection_size),
             color,
         );
     }
@@ -147,7 +171,8 @@ fn register_pressure_plates(
                     // Check if this sibling is a ChargePad
                     if q_charge_pad.contains(sibling) {
                         // Set up the relationship: PressurePlate Powers ChargePad
-                        commands.entity(sibling)
+                        commands
+                            .entity(sibling)
                             .insert(PoweredBy(plate_entity))
                             .observe(charge_pad_receive_power)
                             .observe(charge_pad_lose_power);
@@ -184,62 +209,159 @@ fn register_pressure_plates(
     }
 }
 
-fn register_charge_pads(
-    mut commands: Commands,
-    q_new_charge_pad: Query<Entity, Added<ChargePad>>,
-) {
+fn register_charge_pads(mut commands: Commands, q_new_charge_pad: Query<Entity, Added<ChargePad>>) {
     for charge_pad_entity in &q_new_charge_pad {
-        // Add the signal emitter component with default settings
+        // Add the detector component with default settings
         commands
             .entity(charge_pad_entity)
-            .insert(ChargePadSignalEmitter::default());
+            .insert(ChargePadDetector::default())
+            .observe(on_charge_pad_entity_entered)
+            .observe(on_charge_pad_entity_left);
     }
 }
 
-fn update_charge_pad_signal_emission(
+fn update_charge_pad_overlaps(
     mut commands: Commands,
     mut q_charge_pads: Query<
-        (Entity, &GlobalTransform, &mut ChargePadSignalEmitter),
-        (With<ChargePad>, With<Powered>), // Only emit signals when powered
+        (Entity, &GlobalTransform, &mut ChargePadDetector, &Children),
+        (With<ChargePad>, With<Powered>), // Only detect when powered
     >,
     spatial_query: SpatialQuery,
-    time: Res<Time>,
     q_collider_of: Query<&ColliderOf>, // To check if entity has a rigid body
 ) {
-    for (charge_pad_entity, charge_pad_transform, mut emitter) in q_charge_pads.iter_mut() {
-        // Update the timer
-        emitter.timer.tick(time.delta());
-        // Check if it's time to emit a signal
-        if emitter.timer.just_finished() {
-            // Calculate detection box center
-            let detection_center = charge_pad_transform.translation() + emitter.detection_offset;
+    for (charge_pad_entity, charge_pad_transform, mut detector, charge_pad_children) in
+        q_charge_pads.iter_mut()
+    {
+        let mut current_overlaps = HashSet::new();
 
-            // Create detection shape
-            let detection_shape = Collider::cuboid(
-                emitter.detection_size.x * 0.5,
-                emitter.detection_size.y * 0.5,
-                emitter.detection_size.z * 0.5,
+        // Calculate detection box center
+        let detection_center = charge_pad_transform.translation() + detector.detection_offset;
+
+        // Create detection shape
+        let detection_shape = Collider::cuboid(
+            detector.detection_size.x * 0.5,
+            detector.detection_size.y * 0.5,
+            detector.detection_size.z * 0.5,
+        );
+
+        // Find overlapping entities
+        let overlapping = spatial_query.shape_intersections(
+            &detection_shape,
+            detection_center,
+            Quat::IDENTITY,
+            &SpatialQueryFilter::from_mask([GameLayer::Device]),
+        );
+
+        // Convert collider entities to their bodies and filter out the charge pad itself
+        for entity in overlapping {
+            if entity != charge_pad_entity && !charge_pad_children.contains(&entity) {
+                if let Ok(collider_of) = q_collider_of.get(entity) {
+                    current_overlaps.insert(collider_of.body);
+                }
+            }
+        }
+
+        // Detect new overlaps (entities that just entered)
+        for &entity in &current_overlaps {
+            if !detector.overlapping_entities.contains(&entity) {
+                // New entity entered
+                commands.trigger_targets(
+                    ChargePadEntityEntered {
+                        charge_pad_entity,
+                        entity,
+                    },
+                    charge_pad_entity,
+                );
+            }
+        }
+
+        // Detect entities that left
+        let entities_that_left: Vec<Entity> = detector
+            .overlapping_entities
+            .difference(&current_overlaps)
+            .copied()
+            .collect();
+
+        for entity in entities_that_left {
+            commands.trigger_targets(
+                ChargePadEntityLeft {
+                    charge_pad_entity,
+                    entity,
+                },
+                charge_pad_entity,
             );
+        }
 
-            // Find overlapping entities
-            let overlapping = spatial_query.shape_intersections(
-                &detection_shape,
-                detection_center,
-                Quat::IDENTITY,
-                &SpatialQueryFilter::from_mask([
-                    GameLayer::Player,
-                    GameLayer::Device,
-                ]),
-            );
+        // Update the overlapping entities
+        detector.overlapping_entities = current_overlaps;
+    }
+}
 
-            // Fire DirectSignal on bodies of overlapping entities
-            for entity in overlapping {
-                // Skip the charge pad itself
-                if entity != charge_pad_entity {
-                    // Send the event to the body
-                    if let Ok(collider_of) = q_collider_of.get(entity) {
-                        commands.entity(collider_of.body).trigger(DirectSignal);
+fn on_charge_pad_entity_entered(
+    trigger: Trigger<ChargePadEntityEntered>,
+    mut commands: Commands,
+    mut q_charge_pad: Query<&mut ChargePadDetector, With<ChargePad>>,
+) {
+    let event = trigger.event();
+    let charge_pad_entity = event.charge_pad_entity;
+    let entering_entity = event.entity;
+
+    if let Ok(mut detector) = q_charge_pad.get_mut(charge_pad_entity) {
+        // If no entity is currently being charged, charge this one
+        if detector.charged_entity.is_none() {
+            detector.charged_entity = Some(entering_entity);
+
+            // Add Powered component and PoweredBy relationship
+            commands
+                .entity(entering_entity)
+                .insert(Powered)
+                .insert(PoweredBy(charge_pad_entity));
+        }
+    }
+}
+
+fn on_charge_pad_entity_left(
+    trigger: Trigger<ChargePadEntityLeft>,
+    mut commands: Commands,
+    mut q_charge_pad: Query<&mut ChargePadDetector, With<ChargePad>>,
+    q_powered_by: Query<&PoweredBy>,
+    q_cubes: Query<&WeightedCube>,
+) {
+    let event = trigger.event();
+    let charge_pad_entity = event.charge_pad_entity;
+    let leaving_entity = event.entity;
+
+    if let Ok(mut detector) = q_charge_pad.get_mut(charge_pad_entity) {
+        // If this is the entity we're currently charging, stop charging it
+        if detector.charged_entity == Some(leaving_entity) {
+            detector.charged_entity = None;
+
+            // Remove Powered component only if it's powered by this charge pad
+            if let Ok(powered_by) = q_powered_by.get(leaving_entity) {
+                if powered_by.0 == charge_pad_entity {
+                    if !q_cubes.contains(leaving_entity) {
+                        commands
+                            .entity(leaving_entity)
+                            .remove::<Powered>()
+                            .remove::<PoweredBy>();
+                    } else {
+                        // cubes RETAIN power
+                        commands
+                            .entity(leaving_entity)
+                            .remove::<PoweredBy>();
                     }
+                }
+            }
+
+            // Check if there are other entities we can start charging
+            // Priority: charge the first available entity in the overlapping set
+            if let Some(&next_entity) = detector.overlapping_entities.iter().next() {
+                if next_entity != leaving_entity {
+                    detector.charged_entity = Some(next_entity);
+                    commands
+                        .entity(next_entity)
+                        .insert(Powered)
+                        .insert(PoweredBy(charge_pad_entity));
                 }
             }
         }
@@ -362,7 +484,7 @@ fn on_pressure_plate_released(
                 TargetComponent::marker().with(translation(-Vec3::Y * 1.0, Vec3::ZERO)),
             ));
         }
-        
+
         for target in power_targets.iter() {
             commands.entity(target).remove::<Powered>();
         }
@@ -375,18 +497,26 @@ pub const POWER_ANIMATION_DURATION_SEC: f32 = 1.0;
 fn charge_pad_receive_power(
     trigger: Trigger<OnAdd, Powered>,
     mut commands: Commands,
-    q_charge_pad: Query<(Entity, &Children), With<ChargePad>>,
+    q_charge_pad: Query<(Entity, &Children, &ChargePadDetector), With<ChargePad>>,
     q_unlit_objects: Query<&MeshMaterial3d<UnlitMaterial>>,
     unlit_materials: Res<Assets<UnlitMaterial>>,
 ) {
-    if let Ok((charge_pad, charge_pad_children)) = q_charge_pad.get(trigger.target()) {
+    if let Ok((charge_pad, charge_pad_children, detector)) = q_charge_pad.get(trigger.target()) {
+        if let Some(charged_entity) = detector.charged_entity {
+            // Verify the entity is actually powered by this charge pad
+            commands
+                .entity(charged_entity)
+                .insert((Powered, PoweredBy(charge_pad)));
+        }
+
         for collider_entity in charge_pad_children.iter() {
             if let Ok(material_handle) = q_unlit_objects.get(collider_entity) {
                 if let Some(material) = unlit_materials.get(material_handle) {
                     let current_intensity = material.extension.params.intensity;
-                    let intensity_ratio = (POWER_MATERIAL_INTENSITY - current_intensity) / (POWER_MATERIAL_INTENSITY - 1.0);
+                    let intensity_ratio = (POWER_MATERIAL_INTENSITY - current_intensity)
+                        / (POWER_MATERIAL_INTENSITY - 1.0);
                     let duration_secs = POWER_ANIMATION_DURATION_SEC * intensity_ratio.max(0.1); // Minimum 0.1 seconds
-                   
+
                     commands
                         .entity(collider_entity)
                         .animation()
@@ -410,19 +540,46 @@ fn charge_pad_receive_power(
 fn charge_pad_lose_power(
     trigger: Trigger<OnRemove, Powered>,
     mut commands: Commands,
-    q_charge_pad: Query<(Entity, &Children), With<ChargePad>>,
+    q_charge_pad: Query<(Entity, &Children, &ChargePadDetector), With<ChargePad>>,
     q_unlit_objects: Query<&MeshMaterial3d<UnlitMaterial>>,
     unlit_materials: Res<Assets<UnlitMaterial>>,
+    q_powered_by: Query<&PoweredBy>,
+    q_cubes: Query<&WeightedCube>,
 ) {
-    if let Ok((charge_pad, charge_pad_children)) = q_charge_pad.get(trigger.target()) {
+    if let Ok((charge_pad, charge_pad_children, detector)) =
+        q_charge_pad.get(trigger.target())
+    {
+        // Remove power from any entity this charge pad is currently charging
+        if let Some(charged_entity) = detector.charged_entity {
+            // Verify the entity is actually powered by this charge pad
+            if let Ok(powered_by) = q_powered_by.get(charged_entity) {
+                if powered_by.0 == charge_pad {
+                    if !q_cubes.contains(charged_entity) {
+                        commands
+                            .entity(charged_entity)
+                            .remove::<Powered>()
+                            .remove::<PoweredBy>();
+                    } else {
+                        // cubes RETAIN power
+                        commands
+                            .entity(charged_entity)
+                            .remove::<PoweredBy>();
+                    }
+
+                }
+            }
+        }
+
+        // Animate the charge pad's visual feedback
         for collider_entity in charge_pad_children.iter() {
             if let Ok(material_handle) = q_unlit_objects.get(collider_entity) {
                 if let Some(material) = unlit_materials.get(material_handle) {
                     let current_intensity = material.extension.params.intensity;
 
-                    let intensity_ratio = (current_intensity - 1.0) / (POWER_MATERIAL_INTENSITY - 1.0);
+                    let intensity_ratio =
+                        (current_intensity - 1.0) / (POWER_MATERIAL_INTENSITY - 1.0);
                     let duration_secs = POWER_ANIMATION_DURATION_SEC * intensity_ratio.max(0.1);
-                    
+
                     commands
                         .entity(collider_entity)
                         .animation()

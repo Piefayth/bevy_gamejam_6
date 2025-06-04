@@ -2,7 +2,7 @@ use std::time::Duration;
 
 use avian3d::{
     collision::collider,
-    prelude::{CollisionEventsEnabled, CollisionLayers, RigidBody, RigidBodyColliders},
+    prelude::{Collider, CollisionEventsEnabled, CollisionLayers, RigidBody, RigidBodyColliders},
 };
 use bevy::prelude::*;
 use bevy_tween::{
@@ -19,7 +19,9 @@ use crate::{
 };
 
 use super::{
-    pressure_plate::{PoweredBy, Powers, POWER_ANIMATION_DURATION_SEC, POWER_MATERIAL_INTENSITY}, signals::{default_signal_collisions, DirectSignal, MaterialIntensityInterpolator, Powered}, DespawnOnFinish, GameLayer
+    DespawnOnFinish, GameLayer,
+    pressure_plate::{POWER_ANIMATION_DURATION_SEC, POWER_MATERIAL_INTENSITY, PoweredBy, Powers},
+    signals::{DirectSignal, MaterialIntensityInterpolator, Powered, default_signal_collisions},
 };
 
 pub fn door_plugin(app: &mut App) {
@@ -37,12 +39,13 @@ fn register_doors(
     for (door_entity, door_children, door_parent) in &q_new_door {
         for door_child in door_children.iter() {
             if let Ok(material_handle) = q_unlit_objects.get(door_child) {
-                let mut new_material =
-                    unlit_materials.get(material_handle).unwrap().clone();
+                let mut new_material = unlit_materials.get(material_handle).unwrap().clone();
 
                 new_material.base.depth_bias = 100.;
 
-                commands.entity(door_child).insert(MeshMaterial3d(unlit_materials.add(new_material)));
+                commands
+                    .entity(door_child)
+                    .insert(MeshMaterial3d(unlit_materials.add(new_material)));
             }
             commands.entity(door_child).remove::<DrawSection>();
         }
@@ -100,7 +103,7 @@ fn register_doors(
 }
 
 #[derive(Component)]
-struct PoweredTimer(Timer);
+pub struct PoweredTimer(Timer);
 
 const DOOR_POLE_POWER_DURATION_SEC: u64 = 5;
 fn door_pole_direct_signal(
@@ -127,6 +130,7 @@ fn on_power_added(
     q_doors: Query<(Entity, &Transform, &Children), With<Door>>,
     q_unlit_objects: Query<&MeshMaterial3d<UnlitMaterial>>,
     q_tween: Query<(), With<TimeSpan>>,
+    q_children: Query<&Children, With<Collider>>,
 ) {
     let entity = trigger.target();
 
@@ -134,6 +138,15 @@ fn on_power_added(
     if let Ok((pole_colliders, pole_powers)) = q_pole.get(entity) {
         // Material animations for pole
         for collider_entity in pole_colliders.iter() {
+            if let Ok(collider_children) = q_children.get(collider_entity) {
+                for child in collider_children.iter() {
+                    // the tweens are children of the collider/material entities
+                    if q_tween.contains(child) {
+                        commands.entity(child).despawn();
+                    }
+                }
+            }
+
             if let Ok(material_handle) = q_unlit_objects.get(collider_entity) {
                 commands
                     .entity(collider_entity)
@@ -197,6 +210,7 @@ fn on_power_removed(
     q_doors: Query<(Entity, &Transform, &Children), With<Door>>,
     q_unlit_objects: Query<&MeshMaterial3d<UnlitMaterial>>,
     q_tween: Query<(), With<TimeSpan>>,
+    q_children: Query<&Children, With<Collider>>,
 ) {
     let entity = trigger.target();
 
@@ -204,6 +218,15 @@ fn on_power_removed(
     if let Ok((pole_colliders, pole_powers)) = q_pole.get(entity) {
         // Material animations for pole
         for collider_entity in pole_colliders.iter() {
+            if let Ok(collider_children) = q_children.get(collider_entity) {
+                for child in collider_children.iter() {
+                    // the tweens are children of the collider/material entities
+                    if q_tween.contains(child) {
+                        commands.entity(child).despawn();
+                    }
+                }
+            }
+            
             if let Ok(material_handle) = q_unlit_objects.get(collider_entity) {
                 commands
                     .entity(collider_entity)
@@ -254,7 +277,6 @@ fn on_power_removed(
         }
     }
 }
-
 fn update_powered_timers(
     mut commands: Commands,
     mut q_powered: Query<(Entity, &mut PoweredTimer)>,
