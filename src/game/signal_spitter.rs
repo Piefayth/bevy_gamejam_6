@@ -32,7 +32,7 @@ impl Default for ContinuousEmission {
 }
 
 pub fn signal_spitter_plugin(app: &mut App) {
-    app.add_systems(Update, (register_signal_spitter_signals, handle_continuous_emission));
+    app.add_systems(Update, (register_signal_spitter_signals, handle_continuous_signal_emission));
 }
 
 fn signal_spitter_direct_signal(
@@ -240,7 +240,7 @@ fn signal_spitter_lose_power(
     }    
 }
 
-fn handle_continuous_emission(
+fn handle_continuous_signal_emission(
     mut commands: Commands,
     q_powered_spitters: Query<(Entity, &ContinuousEmission), (With<SignalSpitter>, With<Powered>)>,
     q_children: Query<&Children>,

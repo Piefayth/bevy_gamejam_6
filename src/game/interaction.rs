@@ -17,7 +17,7 @@ use bevy_tween::{
 use crate::asset_management::{
     asset_loading::GameAssets,
     asset_tag_components::{
-        BigRedButton, CubeSpitter, ExitDoorShutter, SignalSpitter, WeightedCube,
+        BigRedButton, CubeSpitter, ExitDoorShutter, SignalSpitter, StandingCubeSpitter, WeightedCube
     },
 };
 
@@ -36,6 +36,7 @@ pub fn interaction_plugin(app: &mut App) {
             register_big_red_button_interaction,
             register_weighted_cube_interaction,
             register_signal_spitter_interaction,
+            register_standing_cube_spitter_interaction
         ),
     );
 }
@@ -124,7 +125,6 @@ fn big_red_button_interaction(
     trigger: Trigger<Interacted>,
     mut commands: Commands,
     game_assets: Res<GameAssets>,
-    q_cube_spitter: Query<(&Transform, &CubeSpitter)>,
     q_collider_of: Query<&ColliderOf>,
     q_body_transforms: Query<&GlobalTransform, (With<RigidBody>, Without<CubeSpitter>)>,
     exit_door_shutter: Single<Entity, With<ExitDoorShutter>>,
@@ -202,7 +202,7 @@ fn register_big_red_button_interaction(
     }
 }
 
-fn weighted_cube_interaction(
+fn pick_up(
     trigger: Trigger<Interacted>,
     mut commands: Commands,
     mut right_hand: Single<&mut RightHand>,
@@ -228,26 +228,12 @@ fn register_weighted_cube_interaction(
         if let Some(found_child) = children.iter().find(|&child| q_mesh.contains(child)) {
             commands
                 .entity(found_child)
-                .observe(weighted_cube_interaction)
+                .observe(pick_up)
                 .insert(Interactable::new(Interactions::PickUp));
         }
         commands.entity(cube_entity).insert(Dissolveable {
             respawn_transform: None,
         });
-    }
-}
-
-fn signal_spitter_interaction(
-    trigger: Trigger<Interacted>,
-    mut commands: Commands,
-    mut right_hand: Single<&mut RightHand>,
-    q_collider_of: Query<&ColliderOf>,
-) {
-    if let Ok(collider_of) = q_collider_of.get(trigger.target()) {
-        if right_hand.held_object.is_none() {
-            right_hand.held_object = Some(collider_of.body);
-            commands.entity(collider_of.body).insert(Held::default());
-        }
     }
 }
 
@@ -265,7 +251,7 @@ fn register_signal_spitter_interaction(
         if let Some(found_child) = children.iter().find(|&child| q_mesh.contains(child)) {
             commands
                 .entity(found_child)
-                .observe(signal_spitter_interaction)
+                .observe(pick_up)
                 .insert((Interactable::new(Interactions::PickUp),));
 
             commands.entity(new_spitter).insert((
@@ -277,3 +263,31 @@ fn register_signal_spitter_interaction(
         }
     }
 }
+
+fn register_standing_cube_spitter_interaction(
+    mut commands: Commands,
+    q_new_spitters: Query<(Entity, &Children, &Transform), Added<StandingCubeSpitter>>,
+    q_mesh: Query<Entity, With<Mesh3d>>,
+) {
+    for (new_spitter, children, transform) in &q_new_spitters {
+        if children.len() > 1 {
+            warn!("spitter cannot have more than one child");
+            continue;
+        }
+
+        if let Some(found_child) = children.iter().find(|&child| q_mesh.contains(child)) {
+            commands
+                .entity(found_child)
+                .observe(pick_up)
+                .insert((Interactable::new(Interactions::PickUp),));
+
+            commands.entity(new_spitter).insert((
+                RigidBody::Kinematic,
+                Dissolveable {
+                    respawn_transform: Some(*transform),
+                },
+            ));
+        }
+    }
+}
+

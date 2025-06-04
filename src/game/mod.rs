@@ -11,6 +11,8 @@ use player::player_plugin;
 use pressure_plate::pressure_plate_plugin;
 use signal_spitter::signal_spitter_plugin;
 use signals::signals_plugin;
+use standing_cube_spitter::standing_cube_spitter_plugin;
+use weighted_cube::cube_plugin;
 
 pub mod player;
 pub mod input;
@@ -22,6 +24,8 @@ pub mod door;
 pub mod inert;
 pub mod signal_spitter;
 pub mod cube_spitter;
+pub mod weighted_cube;
+pub mod standing_cube_spitter;
 
 pub fn gameplay_plugins(app: &mut App) {
     app.add_plugins((
@@ -37,6 +41,8 @@ pub fn gameplay_plugins(app: &mut App) {
         inert_plugin,
         signal_spitter_plugin,
         cube_spitter_plugin,
+        cube_plugin,
+        standing_cube_spitter_plugin
     ))
     .insert_resource(Gravity(Vec3::NEG_Y * 19.6));
 

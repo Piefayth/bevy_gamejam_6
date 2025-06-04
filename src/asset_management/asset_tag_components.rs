@@ -26,12 +26,18 @@ pub struct WeightedCube {
 
 #[derive(Reflect)]
 pub enum WeightedCubeColors {
-    Cyan
+    Cyan,
 }
 
 #[derive(Component, Reflect)]
 #[reflect(Component)]
 pub struct CubeSpitter {
+    pub color: WeightedCubeColors,
+}
+
+#[derive(Component, Reflect)]
+#[reflect(Component)]
+pub struct StandingCubeSpitter {
     pub color: WeightedCubeColors,
 }
 
@@ -97,6 +103,7 @@ pub fn asset_tag_components_plugin(app: &mut App) {
         .register_type::<WeightedCube>()
         .register_type::<WeightedCubeColors>()
         .register_type::<CubeSpitter>()
+        .register_type::<StandingCubeSpitter>()
         .register_type::<SignalSpitter>()
         .register_type::<NeedsRigidBody>()
         .register_type::<ExitDoorShutter>()

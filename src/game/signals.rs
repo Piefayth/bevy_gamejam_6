@@ -16,7 +16,6 @@ use crate::{
     GameState,
     asset_management::{
         asset_loading::GameAssets,
-        asset_tag_components::WeightedCube,
     },
     rendering::unlit_material::UnlitMaterial,
 };
@@ -30,8 +29,6 @@ pub fn signals_plugin(app: &mut App) {
         Update,
         (
             despawn_after_system,
-            register_cube_signals,
-            cube_receive_power,
             signal_after_delay,
         )
             .run_if(in_state(GameState::Playing)),
@@ -60,139 +57,6 @@ impl Interpolator for MaterialIntensityInterpolator {
         material.extension.params.intensity = self.start + (self.end - self.start) * progress;
     }
 }
-
-fn cube_consume_signal(
-    trigger: Trigger<OnCollisionStart>,
-    mut commands: Commands,
-    q_signals: Query<(), With<Signal>>,
-    q_powered: Query<(), (With<Powered>, Without<PoweredTimer>)>,
-) {
-    if let Some(device_body) = trigger.body {
-        if q_signals.contains(trigger.collider) && !q_powered.contains(device_body) {
-            commands.entity(device_body).insert(Powered);
-            commands.entity(trigger.collider).despawn();
-        }
-    }
-}
-
-fn cube_direct_signal(
-    trigger: Trigger<DirectSignal>,
-    mut commands: Commands,
-    q_powered: Query<(), With<Powered>>,
-) {
-    if !q_powered.contains(trigger.target()) {
-        commands.entity(trigger.target()).insert(Powered);
-    }
-}
-
-fn cube_receive_power(
-    mut commands: Commands,
-    q_powered_cube: Query<(Entity, &RigidBodyColliders), (With<WeightedCube>, Added<Powered>)>,
-    q_unlit_objects: Query<&MeshMaterial3d<UnlitMaterial>>,
-    unlit_materials: Res<Assets<UnlitMaterial>>,
-) {
-    for (powered_cube, powered_cube_colliders) in &q_powered_cube {
-        for collider_entity in powered_cube_colliders.iter() {
-            if let Ok(material_handle) = q_unlit_objects.get(collider_entity) {
-                if let Some(material) = unlit_materials.get(material_handle) {
-                    let current_intensity = material.extension.params.intensity;
-                    let intensity_ratio = (POWER_MATERIAL_INTENSITY - current_intensity)
-                        / (POWER_MATERIAL_INTENSITY - 1.0);
-                    let duration_secs = POWER_ANIMATION_DURATION_SEC * intensity_ratio.max(0.1); // Minimum 0.1 seconds
-
-                    commands
-                        .entity(collider_entity)
-                        .animation()
-                        .insert(tween(
-                            Duration::from_secs_f32(duration_secs),
-                            EaseKind::CubicOut,
-                            TargetAsset::Asset(material_handle.clone_weak()).with(
-                                MaterialIntensityInterpolator {
-                                    start: current_intensity,
-                                    end: POWER_MATERIAL_INTENSITY,
-                                },
-                            ),
-                        ))
-                        .insert(DespawnOnFinish);
-                }
-            }
-        }
-    }
-}
-
-fn cube_lose_power(
-    trigger: Trigger<OnRemove, Powered>,
-    mut commands: Commands,
-    q_cube: Query<(Entity, &RigidBodyColliders), With<WeightedCube>>,
-    q_unlit_objects: Query<&MeshMaterial3d<UnlitMaterial>>,
-    unlit_materials: Res<Assets<UnlitMaterial>>,
-) {
-    if let Ok((cube_entity, cube_colliders)) = q_cube.get(trigger.target()) {
-        for collider_entity in cube_colliders.iter() {
-            if let Ok(material_handle) = q_unlit_objects.get(collider_entity) {
-                if let Some(material) = unlit_materials.get(material_handle) {
-                    let current_intensity = material.extension.params.intensity;
-                    let intensity_ratio = (current_intensity - 1.0) / (POWER_MATERIAL_INTENSITY - 1.0);
-                    let duration_secs = POWER_ANIMATION_DURATION_SEC * intensity_ratio.max(0.1);
-
-                    commands
-                        .entity(collider_entity)
-                        .animation()
-                        .insert(tween(
-                            Duration::from_secs_f32(duration_secs),
-                            EaseKind::CubicOut,
-                            TargetAsset::Asset(material_handle.clone_weak()).with(
-                                MaterialIntensityInterpolator {
-                                    start: current_intensity,
-                                    end: 1.0,
-                                },
-                            ),
-                        ))
-                        .insert(DespawnOnFinish);
-                }
-            }
-        }
-    }
-}
-
-fn register_cube_signals(
-    mut commands: Commands,
-    q_new_cube: Query<
-        (Entity, &RigidBodyColliders),
-        (Added<RigidBodyColliders>, With<WeightedCube>),
-    >,
-    mut unlit_materials: ResMut<Assets<UnlitMaterial>>,
-    q_unlit_objects: Query<&MeshMaterial3d<UnlitMaterial>>,
-) {
-    // probably not the right place, but we need to give each cube a dedicated material if it will be powered individually
-
-    for (cube_entity, cube_children) in &q_new_cube {
-        commands
-            .entity(cube_entity)
-            .observe(cube_direct_signal)
-            .observe(cube_lose_power);
-
-        for cube_child in cube_children.iter() {
-            if let Ok(material_handle) = q_unlit_objects.get(cube_child) {
-                let old_material = unlit_materials.get(material_handle).unwrap().clone();
-
-                commands
-                    .entity(cube_child)
-                    .insert((
-                        CollisionEventsEnabled,
-                        CollisionLayers::new(
-                            GameLayer::Device,
-                            [GameLayer::Signal, GameLayer::Player, GameLayer::Default],
-                        ),
-                        AnimationTarget,
-                        MeshMaterial3d(unlit_materials.add(old_material)),
-                    ))
-                    .observe(cube_consume_signal);
-            }
-        }
-    }
-}
-
 
 
 pub fn default_signal_collisions(
