@@ -1,5 +1,5 @@
 use avian3d::prelude::{SpatialQuery, SpatialQueryFilter};
-use bevy::{color::palettes::css::{BLACK, ORANGE}, picking::{pointer::{Location, PointerInteraction, PointerLocation}, PickSet}, prelude::*, render::camera::NormalizedRenderTarget, window::{CursorGrabMode, NormalizedWindowRef, PrimaryWindow, WindowRef}};
+use bevy::{color::palettes::css::BLACK, prelude::*, window::CursorGrabMode};
 use bevy_enhanced_input::events::Completed;
 
 use crate::{
@@ -183,7 +183,7 @@ fn display_interaction_state(
     mut commands: Commands,
     spatial_query: SpatialQuery,
     camera_query: Query<&GlobalTransform, With<Camera>>,
-    q_interactable: Query<&Interactable, (Without<InteractionsDisabled>)>,
+    q_interactable: Query<&Interactable, Without<InteractionsDisabled>>,
     q_crosshair_reticle: Query<Entity, With<CrosshairReticle>>,
     crosshair_state: Option<Res<State<CrosshairState>>>,
     maybe_left_text: Option<Single<&mut Text, With<LeftCrosshairText>>>,
@@ -213,7 +213,7 @@ fn display_interaction_state(
                     let hit_entity = hit.entity;
                     if q_interactable.contains(hit_entity)
                         && !(maybe_held_object.is_some() 
-                                && q_interactable.get(hit_entity).map_or(false, |i| matches!(i.primary_action, Interactions::PickUp)))
+                                && q_interactable.get(hit_entity).is_ok_and(|i| matches!(i.primary_action, Interactions::PickUp)))
                     {
                         q_interactable.get(hit_entity).ok()
                     } else {

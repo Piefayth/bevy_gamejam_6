@@ -1,27 +1,23 @@
-use std::f32::consts::{self, FRAC_PI_2, FRAC_PI_4};
+use std::f32::consts::FRAC_PI_2;
 
 use avian3d::{
     math::PI,
     prelude::{
-        Collider, ColliderDisabled, ColliderOf, CollisionEventsEnabled, CollisionLayers,
-        LockedAxes, Physics, PhysicsSet, RigidBody, RigidBodyColliders, RigidBodyDisabled,
-        ShapeCastConfig, ShapeCaster, ShapeHits, SpatialQuery, SpatialQueryFilter,
+        Collider, CollisionEventsEnabled, CollisionLayers,
+        LockedAxes, RigidBody, RigidBodyColliders, RigidBodyDisabled, ShapeCaster, ShapeHits, SpatialQueryFilter,
         TransformInterpolation,
     },
 };
 use bevy::{
-    app::FixedMain,
     color::palettes::css::{RED, WHITE},
-    picking::pointer::PointerInteraction,
     prelude::*,
 };
 
 use bevy_enhanced_input::{
     EnhancedInputSystem,
-    events::Completed,
     prelude::{ActionValue, Actions},
 };
-use bevy_tnua::{builtins::TnuaBuiltinClimb, prelude::*};
+use bevy_tnua::prelude::*;
 use bevy_tnua_avian3d::*;
 
 use crate::{
@@ -33,8 +29,8 @@ use crate::{
 use super::{
     GameLayer,
     dissolve_gate::handle_dissolve_collisions,
-    input::{FixedInputContext, Jump, Look, Movement, UpdateInputContext, UseInteract},
-    interaction::{Interactable, InteractionsDisabled},
+    input::{FixedInputContext, Jump, Look, Movement, UpdateInputContext},
+    interaction::InteractionsDisabled,
 };
 
 pub fn player_plugin(app: &mut App) {
@@ -95,7 +91,7 @@ fn spawn_player(
 ) {
     commands
         .spawn((
-            spawn_point.clone(),
+            **spawn_point,
             RigidBody::Dynamic,
             Collider::capsule(1.5, 8.0),
             TnuaController::default(), // todo: what options
@@ -240,7 +236,7 @@ fn picked_up_item(
         let mut excluded_entities: Vec<Entity> = vec![];
 
         for thing in picked_up_colliders.iter() {
-            excluded_entities.push(thing.clone());
+            excluded_entities.push(thing);
         }
 
         commands.entity(picked_up_body).insert((RigidBodyDisabled,));

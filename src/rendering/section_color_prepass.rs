@@ -1031,7 +1031,7 @@ impl<P: PhaseItem, const I: usize> RenderCommand<P>
 
         pass.set_bind_group(
             I,
-            &section_groups.0.as_ref().unwrap(),
+            section_groups.0.as_ref().unwrap(),
             &[item_query.unwrap().index()],
         );
 

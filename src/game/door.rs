@@ -1,16 +1,13 @@
 use std::time::Duration;
 
-use avian3d::{
-    collision::collider,
-    prelude::{Collider, CollisionEventsEnabled, CollisionLayers, RigidBody, RigidBodyColliders},
-};
+use avian3d::prelude::{Collider, CollisionEventsEnabled, CollisionLayers, RigidBody, RigidBodyColliders};
 use bevy::prelude::*;
 use bevy_tween::{
     bevy_time_runner::TimeSpan,
-    combinator::{sequence, tween},
+    combinator::tween,
     interpolate::translation,
     prelude::{AnimationBuilderExt, EaseKind},
-    tween::{AnimationTarget, TargetAsset, TargetComponent, Tween},
+    tween::{AnimationTarget, TargetAsset, TargetComponent},
 };
 
 use crate::{
@@ -53,45 +50,43 @@ fn register_doors(
         // Register the DoorPole
         if let Ok(parent_children) = q_children.get(door_parent.parent()) {
             for maybe_pole in parent_children.iter() {
-                if maybe_pole != door_entity {
-                    if q_pole.contains(maybe_pole) {
-                        let pole = maybe_pole;
-                        commands.entity(door_entity).insert(PoweredBy(pole));
+                if maybe_pole != door_entity && q_pole.contains(maybe_pole) {
+                    let pole = maybe_pole;
+                    commands.entity(door_entity).insert(PoweredBy(pole));
 
-                        commands
-                            .entity(pole)
-                            .insert(RigidBody::Static)
-                            .observe(door_pole_direct_signal)
-                            .observe(on_power_added)
-                            .observe(on_power_removed);
+                    commands
+                        .entity(pole)
+                        .insert(RigidBody::Static)
+                        .observe(door_pole_direct_signal)
+                        .observe(on_power_added)
+                        .observe(on_power_removed);
 
-                        if let Ok(pole_children) = q_children.get(pole) {
-                            for pole_child in pole_children.iter() {
-                                if let Ok(material_handle) = q_unlit_objects.get(pole_child) {
-                                    let new_material =
-                                        unlit_materials.get(material_handle).unwrap().clone();
+                    if let Ok(pole_children) = q_children.get(pole) {
+                        for pole_child in pole_children.iter() {
+                            if let Ok(material_handle) = q_unlit_objects.get(pole_child) {
+                                let new_material =
+                                    unlit_materials.get(material_handle).unwrap().clone();
 
-                                    commands
-                                        .entity(pole_child)
-                                        .insert((
-                                            AnimationTarget,
-                                            MeshMaterial3d(unlit_materials.add(new_material)),
-                                            CollisionLayers::new(
+                                commands
+                                    .entity(pole_child)
+                                    .insert((
+                                        AnimationTarget,
+                                        MeshMaterial3d(unlit_materials.add(new_material)),
+                                        CollisionLayers::new(
+                                            GameLayer::Device,
+                                            [
                                                 GameLayer::Device,
-                                                [
-                                                    GameLayer::Device,
-                                                    GameLayer::Player,
-                                                    GameLayer::Signal,
-                                                ],
-                                            ),
-                                            CollisionEventsEnabled,
-                                        ))
-                                        .observe(default_signal_collisions);
-                                }
+                                                GameLayer::Player,
+                                                GameLayer::Signal,
+                                            ],
+                                        ),
+                                        CollisionEventsEnabled,
+                                    ))
+                                    .observe(default_signal_collisions);
                             }
                         }
-                        break; // Assuming only one DoorPole sibling
                     }
+                    break; // Assuming only one DoorPole sibling
                 }
             }
         }

@@ -1,4 +1,4 @@
-use bevy::{color::palettes::tailwind::{PINK_100, RED_500}, picking::pointer::PointerInteraction, prelude::*, window::CursorGrabMode};
+use bevy::prelude::*;
 use bevy_enhanced_input::{input::Input, prelude::{Actions, Binding, InputAction, InputContext, InputContextAppExt}, preset::Cardinal, EnhancedInputPlugin};
 
 pub struct UpdateInputContext;

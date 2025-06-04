@@ -1,29 +1,26 @@
 use std::time::Duration;
 
 use avian3d::prelude::{
-    Collider, ColliderConstructor, CollisionEventsEnabled, CollisionLayers, ExternalImpulse,
-    OnCollisionStart, RigidBody, RigidBodyColliders, RotationInterpolation, Sensor,
+    CollisionEventsEnabled, CollisionLayers, ExternalImpulse, RigidBody, RigidBodyColliders, RotationInterpolation,
     TransformInterpolation,
 };
 use bevy::prelude::*;
 use bevy_tween::{
     combinator::{sequence, tween},
-    interpolate::translation,
-    prelude::{AnimationBuilderExt, EaseKind, Interpolator},
-    tween::{AnimationTarget, IntoTarget, TargetAsset, TargetComponent},
+    prelude::{AnimationBuilderExt, EaseKind},
+    tween::{AnimationTarget, TargetAsset},
 };
 
 use crate::{
-    GameState,
     asset_management::{
         asset_loading::GameAssets,
-        asset_tag_components::{CubeSpitter, SignalSpitter, WeightedCube, WeightedCubeColors},
+        asset_tag_components::{CubeSpitter, WeightedCube, WeightedCubeColors},
     },
     rendering::unlit_material::UnlitMaterial,
 };
 
 use super::{
-    pressure_plate::{POWER_ANIMATION_DURATION_SEC, POWER_MATERIAL_INTENSITY}, signals::{default_signal_collisions, DirectSignal, MaterialIntensityInterpolator, OwnedObjects, SignalAfterDelay}, DespawnOnFinish, GameLayer
+    pressure_plate::{POWER_ANIMATION_DURATION_SEC, POWER_MATERIAL_INTENSITY}, signals::{default_signal_collisions, DirectSignal, MaterialIntensityInterpolator, OwnedObjects}, DespawnOnFinish, GameLayer
 };
 
 pub fn cube_spitter_plugin(app: &mut App) {

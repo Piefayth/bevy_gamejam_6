@@ -1,6 +1,6 @@
 use asset_management::asset_plugins;
 use avian3d::prelude::{PhysicsGizmos, RotationInterpolation};
-use bevy::{color::palettes::{css::MAGENTA, tailwind::CYAN_400}, core_pipeline::{bloom::{Bloom, BloomPrefilter}, fxaa::Fxaa, tonemapping::Tonemapping}, pbr::{light_consts::lux, CascadeShadowConfigBuilder}, prelude::*};
+use bevy::{color::palettes::{css::MAGENTA, tailwind::CYAN_400}, core_pipeline::{bloom::{Bloom, BloomPrefilter}, fxaa::Fxaa}, prelude::*};
 use bevy_inspector_egui::{bevy_egui::EguiPlugin, quick::WorldInspectorPlugin};
 use bevy_tween::DefaultTweenPlugins;
 use game::gameplay_plugins;

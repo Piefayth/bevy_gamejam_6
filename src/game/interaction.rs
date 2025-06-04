@@ -1,24 +1,23 @@
 use std::time::Duration;
 
 use avian3d::prelude::{
-    Collider, ColliderConstructor, ColliderDensity, ColliderOf, CollisionEventsEnabled,
-    CollisionLayers, ComputedMass, ExternalForce, ExternalImpulse, Mass, OnCollisionStart,
-    RayHitData, RigidBody, RigidBodyColliders, RotationInterpolation, Sensor, SleepingDisabled,
-    SpatialQuery, SpatialQueryFilter, TransformInterpolation,
+    ColliderConstructor, ColliderOf, CollisionEventsEnabled,
+    CollisionLayers, RigidBody, RigidBodyColliders, Sensor,
+    SpatialQuery, SpatialQueryFilter,
 };
-use bevy::{prelude::*, window::PrimaryWindow};
+use bevy::prelude::*;
 use bevy_enhanced_input::events::Completed;
 use bevy_tween::{
     combinator::{sequence, tween},
-    interpolate::{Scale, scale_to, translation},
+    interpolate::translation,
     prelude::{AnimationBuilderExt, EaseKind},
-    tween::{self, AnimationTarget, IntoTarget, TargetComponent},
+    tween::{AnimationTarget, TargetComponent},
 };
 
 use crate::asset_management::{
     asset_loading::GameAssets,
     asset_tag_components::{
-        BigRedButton, CubeSpitter, ExitDoorShutter, SignalSpitter, WeightedCube, WeightedCubeColors,
+        BigRedButton, CubeSpitter, ExitDoorShutter, SignalSpitter, WeightedCube,
     },
 };
 
@@ -49,7 +48,7 @@ fn interact(
     spatial_query: SpatialQuery,
     camera_query: Query<&GlobalTransform, With<Camera>>,
     interactables: Query<&Interactable, Without<InteractionsDisabled>>,
-    mut right_hand: Single<&mut RightHand>,
+    right_hand: Single<&mut RightHand>,
     q_held: Query<&Held>,
 ) {
     let mut found_hit: bool = false;
@@ -111,7 +110,7 @@ pub struct InteractionsDisabled;
 
 impl Interactable {
     fn new(primary_action: Interactions) -> Interactable {
-        return Interactable { primary_action };
+        Interactable { primary_action }
     }
 }
 
@@ -272,7 +271,7 @@ fn register_signal_spitter_interaction(
             commands.entity(new_spitter).insert((
                 RigidBody::Kinematic,
                 Dissolveable {
-                    respawn_transform: Some(transform.clone()),
+                    respawn_transform: Some(*transform),
                 },
             ));
         }

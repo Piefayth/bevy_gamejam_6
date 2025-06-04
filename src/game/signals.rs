@@ -1,23 +1,22 @@
 use std::time::Duration;
 
 use avian3d::prelude::{
-    Collider, ColliderConstructor, CollisionEventsEnabled, CollisionLayers, ExternalImpulse,
-    OnCollisionStart, RigidBody, RigidBodyColliders, RotationInterpolation, Sensor,
-    TransformInterpolation,
+    ColliderConstructor, CollisionEventsEnabled, CollisionLayers,
+    OnCollisionStart, RigidBody, RigidBodyColliders, Sensor,
 };
 use bevy::prelude::*;
 use bevy_tween::{
-    combinator::{sequence, tween},
+    combinator::tween,
     interpolate::translation,
     prelude::{AnimationBuilderExt, EaseKind, Interpolator},
-    tween::{AnimationTarget, IntoTarget, TargetAsset, TargetComponent},
+    tween::{AnimationTarget, TargetAsset, TargetComponent},
 };
 
 use crate::{
     GameState,
     asset_management::{
         asset_loading::GameAssets,
-        asset_tag_components::{CubeSpitter, SignalSpitter, WeightedCube, WeightedCubeColors},
+        asset_tag_components::WeightedCube,
     },
     rendering::unlit_material::UnlitMaterial,
 };
@@ -69,11 +68,9 @@ fn cube_consume_signal(
     q_powered: Query<(), (With<Powered>, Without<PoweredTimer>)>,
 ) {
     if let Some(device_body) = trigger.body {
-        if q_signals.contains(trigger.collider) {
-            if !q_powered.contains(device_body) {
-                commands.entity(device_body).insert(Powered);
-                commands.entity(trigger.collider).despawn();
-            }
+        if q_signals.contains(trigger.collider) && !q_powered.contains(device_body) {
+            commands.entity(device_body).insert(Powered);
+            commands.entity(trigger.collider).despawn();
         }
     }
 }
@@ -81,7 +78,7 @@ fn cube_consume_signal(
 fn cube_direct_signal(
     trigger: Trigger<DirectSignal>,
     mut commands: Commands,
-    q_powered: Query<(), (With<Powered>)>,
+    q_powered: Query<(), With<Powered>>,
 ) {
     if !q_powered.contains(trigger.target()) {
         commands.entity(trigger.target()).insert(Powered);
@@ -205,11 +202,9 @@ pub fn default_signal_collisions(
     q_powered: Query<(), With<Powered>>,
 ) {
     if let Some(signaled_body) = trigger.body {
-        if q_signals.contains(trigger.collider) {
-            if !q_powered.contains(trigger.collider) && !q_powered.contains(signaled_body) {
-                commands.entity(signaled_body).trigger(DirectSignal);
-                commands.entity(trigger.collider).despawn();
-            }
+        if q_signals.contains(trigger.collider) && !q_powered.contains(trigger.collider) && !q_powered.contains(signaled_body) {
+            commands.entity(signaled_body).trigger(DirectSignal);
+            commands.entity(trigger.collider).despawn();
         }
     }
 }

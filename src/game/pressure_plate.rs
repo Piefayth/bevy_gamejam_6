@@ -1,12 +1,12 @@
 use super::{
     DespawnOnFinish, GameLayer,
-    signals::{DirectSignal, MaterialIntensityInterpolator, Powered},
+    signals::{MaterialIntensityInterpolator, Powered},
 };
 use crate::{
     asset_management::asset_tag_components::{ChargePad, PressurePlate, WeightedCube},
     rendering::unlit_material::UnlitMaterial,
 };
-use avian3d::{parry::bounding_volume::Aabb, prelude::*};
+use avian3d::prelude::*;
 use bevy::{math::VectorSpace, prelude::*};
 use bevy_tween::{
     combinator::tween,
@@ -18,6 +18,7 @@ use std::{collections::HashSet, time::Duration};
 
 /// Component to store pressure plate detection data
 #[derive(Component)]
+#[derive(Default)]
 pub struct PressurePlateDetector {
     /// Entities currently overlapping with this pressure plate
     pub overlapping_entities: HashSet<Entity>,
@@ -25,14 +26,6 @@ pub struct PressurePlateDetector {
     pub is_pressed: bool,
 }
 
-impl Default for PressurePlateDetector {
-    fn default() -> Self {
-        Self {
-            overlapping_entities: HashSet::new(),
-            is_pressed: false,
-        }
-    }
-}
 
 /// Component for ChargePad detection configuration
 #[derive(Component)]

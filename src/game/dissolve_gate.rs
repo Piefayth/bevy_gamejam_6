@@ -1,7 +1,7 @@
 use std::time::Duration;
 
 use avian3d::prelude::{
-    ColliderOf, CollisionEventsEnabled, CollisionLayers, OnCollisionStart, RigidBody, Sensor,
+    ColliderOf, CollisionEventsEnabled, CollisionLayers, OnCollisionStart, Sensor,
 };
 use bevy::{color::palettes::css::RED, prelude::*};
 

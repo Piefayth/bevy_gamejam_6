@@ -1,23 +1,20 @@
-use avian3d::prelude::{Collider, ColliderConstructor, RigidBody};
+use avian3d::prelude::{ColliderConstructor, RigidBody};
 use bevy::{
     asset::LoadState,
-    color::palettes::{
-        css::{RED, WHITE},
-        tailwind::CYAN_400,
-    },
+    color::palettes::css::WHITE,
     pbr::ExtendedMaterial,
     prelude::*,
 };
 
 use crate::{
-    GameState, game,
+    GameState,
     rendering::{
         section_color_prepass::{ATTRIBUTE_SECTION_COLOR, DrawSection},
         unlit_material::{UnlitMaterial, UnlitMaterialExtension, UnlitParams},
     },
 };
 
-use super::asset_tag_components::{CubeSpitter, Door, DoorPole, Inert, NeedsRigidBody, RoomWall, SignalSpitter};
+use super::asset_tag_components::{CubeSpitter, Door, DoorPole, Inert, NeedsRigidBody, SignalSpitter};
 
 pub(crate) fn assets_plugin(app: &mut App) {
     app.init_state::<AssetLoaderState>()
@@ -67,9 +64,9 @@ fn on_start_loading(
     mut commands: Commands,
     mut game_assets: ResMut<GameAssets>,
     asset_server: Res<AssetServer>,
-    mut meshes: ResMut<Assets<Mesh>>,
+    meshes: ResMut<Assets<Mesh>>,
     mut unlit_materials: ResMut<Assets<UnlitMaterial>>,
-    mut standard_materials: ResMut<Assets<StandardMaterial>>,
+    standard_materials: ResMut<Assets<StandardMaterial>>,
 ) {
     game_assets.main_menu_environment =
         asset_server.load(GltfAssetLabel::Scene(0).from_asset("scenes/jam6scene1.glb"));
@@ -204,7 +201,7 @@ fn postprocess_assets(
             }
 
             for (entity, mesh_handle) in entities_to_process.iter() {
-                if let Some(mesh) = meshes.get_mut(&*mesh_handle) {
+                if let Some(mesh) = meshes.get_mut(mesh_handle) {
                     // convert vertex colors to the section color our outline effect expects
                     // TODO: Should we remove the vertex color attribute afterwards?
                     if let Some(vertex_colors) = mesh.attribute(Mesh::ATTRIBUTE_COLOR).cloned() {
@@ -228,7 +225,7 @@ fn postprocess_assets(
 
             for (_, mesh_handle) in entities_to_process {
                 if let Some(mesh) = meshes.get_mut(&mesh_handle) {
-                    if let Some(_) = mesh.attribute(Mesh::ATTRIBUTE_COLOR).cloned() {
+                    if mesh.attribute(Mesh::ATTRIBUTE_COLOR).cloned().is_some() {
                         mesh.remove_attribute(Mesh::ATTRIBUTE_COLOR);
                     }
                 }

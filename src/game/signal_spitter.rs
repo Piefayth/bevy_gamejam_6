@@ -1,21 +1,15 @@
 use std::time::Duration;
 
 use avian3d::prelude::{
-    Collider, ColliderConstructor, CollisionEventsEnabled, CollisionLayers, ExternalImpulse,
-    OnCollisionStart, RigidBody, RigidBodyColliders, RotationInterpolation, Sensor,
-    TransformInterpolation,
+    Collider, CollisionEventsEnabled, CollisionLayers, RigidBodyColliders,
 };
 use bevy::prelude::*;
 use bevy_tween::{
-    bevy_time_runner::TimeSpan, combinator::{sequence, tween}, interpolate::translation, prelude::{AnimationBuilderExt, EaseKind, Interpolator}, tween::{AnimationTarget, IntoTarget, TargetAsset, TargetComponent}
+    bevy_time_runner::TimeSpan, combinator::{sequence, tween}, prelude::{AnimationBuilderExt, EaseKind}, tween::{AnimationTarget, TargetAsset}
 };
 
 use crate::{
-    GameState,
-    asset_management::{
-        asset_loading::GameAssets,
-        asset_tag_components::{CubeSpitter, SignalSpitter, WeightedCube, WeightedCubeColors},
-    },
+    asset_management::asset_tag_components::SignalSpitter,
     rendering::unlit_material::UnlitMaterial,
 };
 
@@ -44,7 +38,7 @@ pub fn signal_spitter_plugin(app: &mut App) {
 fn signal_spitter_direct_signal(
     trigger: Trigger<DirectSignal>,
     mut commands: Commands,
-    q_spitter: Query<(&RigidBodyColliders), (With<SignalSpitter>)>,
+    q_spitter: Query<&RigidBodyColliders, With<SignalSpitter>>,
     q_unlit_objects: Query<&MeshMaterial3d<UnlitMaterial>>,
     time: Res<Time>,
 ) {
