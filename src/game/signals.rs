@@ -302,11 +302,14 @@ pub fn default_signal_collisions(
     trigger: Trigger<OnCollisionStart>,
     mut commands: Commands,
     q_signals: Query<(), With<Signal>>,
+    q_powered: Query<(), With<Powered>>,
 ) {
     if let Some(signaled_body) = trigger.body {
         if q_signals.contains(trigger.collider) {
-            commands.entity(signaled_body).trigger(DirectSignal);
-            commands.entity(trigger.collider).despawn();
+            if !q_powered.contains(trigger.collider) && !q_powered.contains(signaled_body) {
+                commands.entity(signaled_body).trigger(DirectSignal);
+                commands.entity(trigger.collider).despawn();
+            }
         }
     }
 }
