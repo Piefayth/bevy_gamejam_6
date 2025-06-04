@@ -17,7 +17,7 @@ use crate::{
     },
 };
 
-use super::asset_tag_components::{NeedsRigidBody, RoomWall, SignalSpitter};
+use super::asset_tag_components::{CubeSpitter, Door, DoorPole, NeedsRigidBody, RoomWall, SignalSpitter};
 
 pub(crate) fn assets_plugin(app: &mut App) {
     app.init_state::<AssetLoaderState>()
@@ -266,7 +266,7 @@ fn postprocess_assets(
 fn add_rigidbodies_to_colliders(
     mut commands: Commands,
     q_colliders_without_rigidbody: Query<(Entity, &NeedsRigidBody, &ChildOf)>,
-    q_exclusions: Query<(), With<SignalSpitter>>, // we will add these RBs later during registration
+    q_exclusions: Query<(), Or<(With<SignalSpitter>, With<CubeSpitter>, With<DoorPole>, With<Door>)>>, // we will add these RBs later during registration
 ) {
     for (entity, nrb, child_of) in &q_colliders_without_rigidbody {
         if !q_exclusions.contains(child_of.0) {
@@ -277,7 +277,6 @@ fn add_rigidbodies_to_colliders(
                 .remove::<NeedsRigidBody>();
         } else {
             commands.entity(entity).remove::<NeedsRigidBody>();
-            println!("ignored an exclusion");
         }
     }
 }

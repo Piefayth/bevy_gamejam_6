@@ -1,10 +1,12 @@
+use std::time::Duration;
+
 use avian3d::prelude::{
     ColliderOf, CollisionEventsEnabled, CollisionLayers, OnCollisionStart, RigidBody, Sensor,
 };
 use bevy::{color::palettes::css::RED, prelude::*};
 
 use crate::{
-    asset_management::asset_tag_components::DissolveGate, game::player::Held,
+    asset_management::asset_tag_components::DissolveGate, game::{player::Held, signals::DespawnAfter},
     rendering::unlit_material::UnlitMaterial,
 };
 
@@ -60,7 +62,7 @@ pub fn handle_dissolve_collisions(
     q_dissolveable: Query<&Dissolveable>,
     q_player: Query<&RightHand, With<Player>>,
     q_collider_of: Query<&ColliderOf>,
-    q_dissolve_gates: Query<&DissolveGate>,
+    q_dissolve_gates: Query<(Entity, &DissolveGate)>,
     q_child_of: Query<&ChildOf>,
 ) {
     let device_or_player_collider_entity = trigger.collider;
@@ -70,8 +72,9 @@ pub fn handle_dissolve_collisions(
         if !q_dissolve_gates.contains(maybe_dissolve_gate_parent.0) {
             return;
         }
+    } else {
+        return;
     }
-
 
     if let Ok(targeted_body) = q_collider_of.get(device_or_player_collider_entity) {
         if let Ok(dissolveable) = q_dissolveable.get(targeted_body.body) {
@@ -100,11 +103,8 @@ pub fn handle_dissolve_collisions(
 
         // Check if the colliding entity is a player with a held object
         if let Ok(right_hand) = q_player.get(targeted_body.body) {
-            println!("hit player");
             if let Some(held_entity) = right_hand.held_object {
-                println!("player was holding");
                 if let Ok(dissolveable) = q_dissolveable.get(held_entity) {
-                    println!("hold was dissolavabelasdf");
                     match &dissolveable.respawn_transform {
                         Some(respawn_transform) => {
                             // Respawn the held entity at the specified transform and remove Held component
@@ -119,7 +119,8 @@ pub fn handle_dissolve_collisions(
                         }
                         None => {
                             // Despawn the held entity
-                            commands.entity(held_entity).despawn();
+                            commands.entity(held_entity).insert(DespawnAfter::new(Duration::from_millis(50)));
+
                             info!("Dissolved held entity {:?} despawned", held_entity);
                         }
                     }

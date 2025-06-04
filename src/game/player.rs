@@ -31,7 +31,10 @@ use crate::{
 };
 
 use super::{
-    dissolve_gate::handle_dissolve_collisions, input::{FixedInputContext, Jump, Look, Movement, UpdateInputContext, UseInteract}, interaction::{Interactable, InteractionsDisabled}, GameLayer
+    GameLayer,
+    dissolve_gate::handle_dissolve_collisions,
+    input::{FixedInputContext, Jump, Look, Movement, UpdateInputContext, UseInteract},
+    interaction::{Interactable, InteractionsDisabled},
 };
 
 pub fn player_plugin(app: &mut App) {
@@ -90,20 +93,22 @@ fn spawn_player(
     spawn_point: Single<&Transform, With<PlayerSpawnPoint>>,
     mut camera: Single<&mut Transform, (With<MainCamera>, Without<PlayerSpawnPoint>)>,
 ) {
-    commands.spawn((
-        spawn_point.clone(),
-        RigidBody::Dynamic,
-        Collider::capsule(1.5, 8.0),
-        TnuaController::default(), // todo: what options
-        TnuaAvian3dSensorShape(Collider::capsule(1.49, 7.99)),
-        LockedAxes::ROTATION_LOCKED,
-        Player,
-        RightHand::default(),
-        StateScoped(GameState::Playing),
-        TransformInterpolation,
-        CollisionLayers::new(GameLayer::Player, [GameLayer::Default, GameLayer::Device]),
-        CollisionEventsEnabled,
-    )).observe(handle_dissolve_collisions);
+    commands
+        .spawn((
+            spawn_point.clone(),
+            RigidBody::Dynamic,
+            Collider::capsule(1.5, 8.0),
+            TnuaController::default(), // todo: what options
+            TnuaAvian3dSensorShape(Collider::capsule(1.49, 7.99)),
+            LockedAxes::ROTATION_LOCKED,
+            Player,
+            RightHand::default(),
+            StateScoped(GameState::Playing),
+            TransformInterpolation,
+            CollisionLayers::new(GameLayer::Player, [GameLayer::Default, GameLayer::Device]),
+            CollisionEventsEnabled,
+        ))
+        .observe(handle_dissolve_collisions);
 
     // set camera rotation to away from origin.
     **camera = camera.looking_at(Vec3::ZERO, Vec3::Y);
@@ -282,19 +287,20 @@ fn released_item(
 
                 commands
                     .entity(collider_entity)
-                    .insert(DrawSection)
                     // TODO: These layers might not be the same for every item we can hold?
-                    .insert(CollisionLayers::new(
-                        GameLayer::Device,
-                        [
-                            GameLayer::Default,
-                            GameLayer::Player,
-                            GameLayer::Signal,
+                    .try_insert((   // entity mightve been despawned
+                        CollisionLayers::new(
                             GameLayer::Device,
-                        ],
+                            [
+                                GameLayer::Default,
+                                GameLayer::Player,
+                                GameLayer::Signal,
+                                GameLayer::Device,
+                            ],
+                        ),
+                        DrawSection,
                     ))
-                    .remove::<InteractionsDisabled>()
-                    .insert(Pickable::default());
+                    .try_remove::<InteractionsDisabled>();
             }
         }
 

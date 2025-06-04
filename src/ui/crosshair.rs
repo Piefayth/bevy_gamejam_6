@@ -40,7 +40,7 @@ pub struct LeftCrosshairText;
 pub struct RightCrosshairText;
 
 fn enable_crosshair(mut commands: Commands, mut primary_window: Single<&mut Window>) {
-    primary_window.cursor_options.grab_mode = CursorGrabMode::Locked;
+    primary_window.cursor_options.grab_mode = CursorGrabMode::Confined;
     primary_window.cursor_options.visible = false;
 
 commands

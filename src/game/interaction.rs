@@ -1,7 +1,10 @@
 use std::time::Duration;
 
 use avian3d::prelude::{
-    Collider, ColliderConstructor, ColliderDensity, ColliderOf, CollisionEventsEnabled, CollisionLayers, ComputedMass, ExternalForce, ExternalImpulse, Mass, OnCollisionStart, RayHitData, RigidBody, RigidBodyColliders, RotationInterpolation, Sensor, SleepingDisabled, SpatialQuery, SpatialQueryFilter, TransformInterpolation
+    Collider, ColliderConstructor, ColliderDensity, ColliderOf, CollisionEventsEnabled,
+    CollisionLayers, ComputedMass, ExternalForce, ExternalImpulse, Mass, OnCollisionStart,
+    RayHitData, RigidBody, RigidBodyColliders, RotationInterpolation, Sensor, SleepingDisabled,
+    SpatialQuery, SpatialQueryFilter, TransformInterpolation,
 };
 use bevy::{prelude::*, window::PrimaryWindow};
 use bevy_enhanced_input::events::Completed;
@@ -15,12 +18,16 @@ use bevy_tween::{
 use crate::asset_management::{
     asset_loading::GameAssets,
     asset_tag_components::{
-        BigRedButton, CubeSpitter, ExitDoorShutter, SignalSpitter, WeightedCube, WeightedCubeColors
+        BigRedButton, CubeSpitter, ExitDoorShutter, SignalSpitter, WeightedCube, WeightedCubeColors,
     },
 };
 
 use super::{
-    dissolve_gate::Dissolveable, input::UseInteract, player::{Held, RightHand}, signals::{Signal, MAX_SIGNAL_TRAVEL_DIST}, GameLayer
+    GameLayer,
+    dissolve_gate::Dissolveable,
+    input::UseInteract,
+    player::{Held, RightHand},
+    signals::{MAX_SIGNAL_TRAVEL_DIST, Signal},
 };
 
 pub fn interaction_plugin(app: &mut App) {
@@ -29,7 +36,7 @@ pub fn interaction_plugin(app: &mut App) {
         (
             register_big_red_button_interaction,
             register_weighted_cube_interaction,
-            register_signal_spitter_interaction
+            register_signal_spitter_interaction,
         ),
     );
 }
@@ -51,97 +58,30 @@ fn interact(
     let Ok(camera_transform) = camera_query.single() else {
         return;
     };
-    
+
     // Cast ray from camera center forward
     let ray_origin = camera_transform.translation();
     let ray_direction = camera_transform.forward();
-    
+
     // Perform raycast
     if let Some(hit) = spatial_query.cast_ray(
         ray_origin,
         ray_direction,
         INTERACTION_DISTANCE,
         true, // solid hits only
-            &SpatialQueryFilter::default()
-                .with_mask([GameLayer::Default, GameLayer::Device])
+        &SpatialQueryFilter::default().with_mask([GameLayer::Default, GameLayer::Device]),
     ) {
         let hit_entity = hit.entity;
-        
+
         // Check if the hit entity is interactable
         if let Ok(interactable) = interactables.get(hit_entity) {
             // Check if we can interact (don't pick up if already holding something)
-            let can_interact = !(right_hand.held_object.is_some() 
+            let can_interact = !(right_hand.held_object.is_some()
                 && matches!(interactable.primary_action, Interactions::PickUp));
-            
+
             if can_interact {
                 commands.entity(hit_entity).trigger(Interacted);
                 found_hit = true;
-            }
-        }
-    }
-
-    // If no interaction found, try to release held object
-    if !found_hit {
-        if let Some(held_entity) = right_hand.held_object {
-            if let Ok(held) = q_held.get(held_entity) {
-                if held.can_release {
-                    commands.entity(held_entity).remove::<Held>();
-                }
-            }
-        }
-    }
-}
-
-// Alternative implementation using mouse cursor position for more precise aiming
-fn interact_cursor_based(
-    _trigger: Trigger<Completed<UseInteract>>,
-    mut commands: Commands,
-    spatial_query: SpatialQuery,
-    camera_query: Query<(&Camera, &GlobalTransform)>,
-    window_query: Query<&Window, With<PrimaryWindow>>,
-    interactables: Query<&Interactable, Without<InteractionsDisabled>>,
-    mut right_hand: Single<&mut RightHand>,
-    q_held: Query<&Held>,
-) {
-    let mut found_hit: bool = false;
-
-    // Get camera and window for cursor-based raycast
-    let Ok((camera, camera_transform)) = camera_query.get_single() else {
-        return;
-    };
-    
-    let Ok(window) = window_query.get_single() else {
-        return;
-    };
-
-    // Get cursor position (use center of screen if no cursor)
-    let cursor_pos = window.cursor_position().unwrap_or_else(|| {
-        Vec2::new(window.width() / 2.0, window.height() / 2.0)
-    });
-
-    // Convert cursor position to world ray
-    if let Ok(ray) = camera.viewport_to_world(camera_transform, cursor_pos) {
-        // Perform raycast
-        if let Some(hit) = spatial_query.cast_ray(
-            ray.origin,
-            ray.direction,
-            INTERACTION_DISTANCE,
-            true, // solid hits only
-            &SpatialQueryFilter::default()
-                .with_mask([GameLayer::Default, GameLayer::Device])
-        ) {
-            let hit_entity = hit.entity;
-            
-            // Check if the hit entity is interactable
-            if let Ok(interactable) = interactables.get(hit_entity) {
-                // Check if we can interact
-                let can_interact = !(right_hand.held_object.is_some() 
-                    && matches!(interactable.primary_action, Interactions::PickUp));
-                
-                if can_interact {
-                    commands.entity(hit_entity).trigger(Interacted);
-                    found_hit = true;
-                }
             }
         }
     }
@@ -217,7 +157,10 @@ fn big_red_button_interaction(
     commands.entity(signal_indicator).animation().insert(tween(
         Duration::from_secs(10),
         EaseKind::Linear,
-        TargetComponent::marker().with(translation(start_loc, start_loc + Vec3::Z * MAX_SIGNAL_TRAVEL_DIST)),
+        TargetComponent::marker().with(translation(
+            start_loc,
+            start_loc + Vec3::Z * MAX_SIGNAL_TRAVEL_DIST,
+        )),
     ));
 
     let target = TargetComponent::marker();
@@ -276,16 +219,22 @@ fn weighted_cube_interaction(
 
 fn register_weighted_cube_interaction(
     mut commands: Commands,
-    q_new_buttons: Query<&RigidBodyColliders, (Added<RigidBodyColliders>, With<WeightedCube>)>,
+    q_new_cubes: Query<
+        (Entity, &RigidBodyColliders),
+        (Added<RigidBodyColliders>, With<WeightedCube>),
+    >,
     q_mesh: Query<Entity, With<Mesh3d>>,
 ) {
-    for children in &q_new_buttons {
+    for (cube_entity, children) in &q_new_cubes {
         if let Some(found_child) = children.iter().find(|&child| q_mesh.contains(child)) {
             commands
                 .entity(found_child)
                 .observe(weighted_cube_interaction)
                 .insert(Interactable::new(Interactions::PickUp));
         }
+        commands.entity(cube_entity).insert(Dissolveable {
+            respawn_transform: None,
+        });
     }
 }
 
@@ -318,13 +267,14 @@ fn register_signal_spitter_interaction(
             commands
                 .entity(found_child)
                 .observe(signal_spitter_interaction)
-                .insert((
-                    Interactable::new(Interactions::PickUp),
-                ));
+                .insert((Interactable::new(Interactions::PickUp),));
 
-            commands.entity(new_spitter).insert((RigidBody::Kinematic, Dissolveable {
-                respawn_transform: Some(transform.clone()),
-            },));
+            commands.entity(new_spitter).insert((
+                RigidBody::Kinematic,
+                Dissolveable {
+                    respawn_transform: Some(transform.clone()),
+                },
+            ));
         }
     }
 }

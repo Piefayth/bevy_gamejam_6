@@ -62,7 +62,25 @@ pub struct PressurePlate {
 
 #[derive(Component, Reflect)]
 #[reflect(Component)]
+pub struct ChargePad {
+    pub unused: bool,
+}
+
+#[derive(Component, Reflect, Debug)]
+#[reflect(Component)]
 pub struct DissolveGate {
+    pub unused: bool,
+}
+
+#[derive(Component, Reflect, Debug)]
+#[reflect(Component)]
+pub struct Door {
+    pub unused: bool,
+}
+
+#[derive(Component, Reflect, Debug)]
+#[reflect(Component)]
+pub struct DoorPole {
     pub unused: bool,
 }
 
@@ -77,5 +95,8 @@ pub fn asset_tag_components_plugin(app: &mut App) {
         .register_type::<ExitDoorShutter>()
         .register_type::<PressurePlate>()
         .register_type::<DissolveGate>()
-        .register_type::<Dissolveable>();
+        .register_type::<Dissolveable>()
+        .register_type::<ChargePad>()
+        .register_type::<Door>()
+        .register_type::<DoorPole>();
 }
