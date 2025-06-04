@@ -84,6 +84,13 @@ pub struct DoorPole {
     pub unused: bool,
 }
 
+
+#[derive(Component, Reflect, Debug)]
+#[reflect(Component)]
+pub struct Inert {
+    pub unused: bool,
+}
+
 pub fn asset_tag_components_plugin(app: &mut App) {
     app.register_type::<RoomWall>()
         .register_type::<BigRedButton>()
@@ -98,5 +105,7 @@ pub fn asset_tag_components_plugin(app: &mut App) {
         .register_type::<Dissolveable>()
         .register_type::<ChargePad>()
         .register_type::<Door>()
-        .register_type::<DoorPole>();
+        .register_type::<DoorPole>()
+        .register_type::<Inert>()
+        ;
 }

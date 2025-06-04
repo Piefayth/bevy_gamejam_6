@@ -15,13 +15,11 @@ use bevy_tween::{
 
 use crate::{
     asset_management::asset_tag_components::{Door, DoorPole},
-    rendering::unlit_material::UnlitMaterial,
+    rendering::{section_color_prepass::DrawSection, unlit_material::UnlitMaterial},
 };
 
 use super::{
-    DespawnOnFinish, GameLayer,
-    pressure_plate::{POWER_ANIMATION_DURATION_SEC, POWER_MATERIAL_INTENSITY, PoweredBy, Powers},
-    signals::{DirectSignal, MaterialIntensityInterpolator, Powered, default_signal_collisions},
+    pressure_plate::{PoweredBy, Powers, POWER_ANIMATION_DURATION_SEC, POWER_MATERIAL_INTENSITY}, signals::{default_signal_collisions, DirectSignal, MaterialIntensityInterpolator, Powered}, DespawnOnFinish, GameLayer
 };
 
 pub fn door_plugin(app: &mut App) {
@@ -37,6 +35,18 @@ fn register_doors(
     q_pole: Query<Entity, With<DoorPole>>,
 ) {
     for (door_entity, door_children, door_parent) in &q_new_door {
+        for door_child in door_children.iter() {
+            if let Ok(material_handle) = q_unlit_objects.get(door_child) {
+                let mut new_material =
+                    unlit_materials.get(material_handle).unwrap().clone();
+
+                new_material.base.depth_bias = 100.;
+
+                commands.entity(door_child).insert(MeshMaterial3d(unlit_materials.add(new_material)));
+            }
+            commands.entity(door_child).remove::<DrawSection>();
+        }
+
         // Register the DoorPole
         if let Ok(parent_children) = q_children.get(door_parent.parent()) {
             for maybe_pole in parent_children.iter() {
@@ -52,18 +62,17 @@ fn register_doors(
                             .observe(on_power_added)
                             .observe(on_power_removed);
 
-
                         if let Ok(pole_children) = q_children.get(pole) {
                             for pole_child in pole_children.iter() {
                                 if let Ok(material_handle) = q_unlit_objects.get(pole_child) {
-                                    let old_material =
+                                    let new_material =
                                         unlit_materials.get(material_handle).unwrap().clone();
 
                                     commands
                                         .entity(pole_child)
                                         .insert((
                                             AnimationTarget,
-                                            MeshMaterial3d(unlit_materials.add(old_material)),
+                                            MeshMaterial3d(unlit_materials.add(new_material)),
                                             CollisionLayers::new(
                                                 GameLayer::Device,
                                                 [
@@ -120,7 +129,7 @@ fn on_power_added(
     q_tween: Query<(), With<TimeSpan>>,
 ) {
     let entity = trigger.target();
-    
+
     // Handle pole material animation
     if let Ok((pole_colliders, pole_powers)) = q_pole.get(entity) {
         // Material animations for pole
@@ -148,7 +157,7 @@ fn on_power_added(
             if let Ok((door_entity, door_transform, door_children)) = q_doors.get(powered_entity) {
                 let current_y = door_transform.translation.y;
                 let target_y = 3.0;
-                
+
                 // Clear existing tweens
                 for child in door_children.iter() {
                     if q_tween.contains(child) {
@@ -190,7 +199,7 @@ fn on_power_removed(
     q_tween: Query<(), With<TimeSpan>>,
 ) {
     let entity = trigger.target();
-    
+
     // Handle pole material animation
     if let Ok((pole_colliders, pole_powers)) = q_pole.get(entity) {
         // Material animations for pole
@@ -218,7 +227,7 @@ fn on_power_removed(
             if let Ok((door_entity, door_transform, door_children)) = q_doors.get(powered_entity) {
                 let current_y = door_transform.translation.y;
                 let start_y = 0.0;
-                
+
                 // Clear existing tweens
                 for child in door_children.iter() {
                     if q_tween.contains(child) {
@@ -254,7 +263,8 @@ fn update_powered_timers(
     for (entity, mut timer) in q_powered.iter_mut() {
         timer.0.tick(time.delta());
         if timer.0.finished() {
-            commands.entity(entity)
+            commands
+                .entity(entity)
                 .remove::<Powered>()
                 .remove::<PoweredTimer>();
         }

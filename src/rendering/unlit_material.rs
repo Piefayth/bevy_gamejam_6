@@ -3,7 +3,7 @@ use bevy::{
     prelude::*,
     render::render_resource::{AsBindGroup, ShaderRef, ShaderType},
 };
-use bevy_tween::{asset_tween_system, tween::{TargetAsset}, BevyTweenRegisterSystems};
+use bevy_tween::{asset_tween_system, prelude::Interpolator, tween::TargetAsset, BevyTweenRegisterSystems};
 use crate::game::signals::MaterialIntensityInterpolator;
 
 pub fn unlit_material_plugin(app: &mut App) {
@@ -12,7 +12,8 @@ pub fn unlit_material_plugin(app: &mut App) {
         .register_type::<UnlitMaterial>()
         .register_type::<TargetAsset<UnlitMaterial>>()
         .register_asset_reflect::<UnlitMaterial>()
-        .add_tween_systems(asset_tween_system::<MaterialIntensityInterpolator>());
+        .add_tween_systems(asset_tween_system::<MaterialIntensityInterpolator>())
+        .add_tween_systems(asset_tween_system::<MaterialColorOverrideInterpolator>());
 }
 
 pub type UnlitMaterial = ExtendedMaterial<StandardMaterial, UnlitMaterialExtension>;
@@ -36,5 +37,21 @@ pub struct UnlitParams {
 impl MaterialExtension for UnlitMaterialExtension {
     fn fragment_shader() -> ShaderRef {
         "shaders/unlit.wgsl".into()
+    }
+}
+
+#[derive(Reflect, Debug)]
+pub struct MaterialColorOverrideInterpolator {
+    pub target_color: LinearRgba,
+}
+
+impl Interpolator for MaterialColorOverrideInterpolator {
+    type Item = UnlitMaterial;
+    
+    fn interpolate(&self, material: &mut Self::Item, progress: f32) {
+        let invert_progress = 1.0 - progress;
+        material.extension.params.blend_color = self.target_color;
+        material.extension.params.grey_threshold = 0.0;
+        material.extension.params.blend_factor = invert_progress;
     }
 }
