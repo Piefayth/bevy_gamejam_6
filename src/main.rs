@@ -75,7 +75,7 @@ fn spawn_main_camera(
         Projection::Perspective(PerspectiveProjection { fov: 1.396, ..default() }),
         Msaa::Off,
         Fxaa {
-            enabled: true,
+            enabled: false,
             ..default()
         },
         PostProcessSettings {

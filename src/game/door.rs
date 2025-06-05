@@ -107,7 +107,7 @@ fn register_doors(
 #[derive(Component)]
 pub struct PoweredTimer(Timer);
 
-const DOOR_POLE_POWER_DURATION_SEC: u64 = 2;
+const DOOR_POLE_POWER_DURATION_SEC: u64 = 1;
 fn door_pole_direct_signal(
     trigger: Trigger<DirectSignal>,
     mut commands: Commands,
@@ -125,6 +125,8 @@ fn door_pole_direct_signal(
 }
 
 const DOOR_LIFT_HEIGHT: f32 = 20.;
+
+pub struct PowersDoors(pub Vec<Entity>);
 
 fn on_power_added(
     trigger: Trigger<OnAdd, Powered>,

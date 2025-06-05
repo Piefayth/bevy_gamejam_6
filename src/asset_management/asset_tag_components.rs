@@ -84,6 +84,13 @@ pub struct Door {
     pub unused: bool,
 }
 
+#[derive(Component, Reflect)]
+#[reflect(Component)]
+pub struct ExtraDoorPowerRequired {
+    pub amount: u32,
+}
+
+
 #[derive(Component, Reflect, Debug)]
 #[reflect(Component)]
 pub struct DoorPole {
@@ -136,5 +143,6 @@ pub fn asset_tag_components_plugin(app: &mut App) {
         .register_type::<Immobile>()
         .register_type::<PowerButton>()
         .register_type::<PermanentlyPowered>()
+        .register_type::<ExtraDoorPowerRequired>()
         ;
 }

@@ -37,16 +37,17 @@ fn vertex(vertex: Vertex) -> VertexOutput {
     out.clip_position = position_world_to_clip(out.world_position.xyz);
 
     #ifdef SECTION_COLORS
-    if vertex.color.r == 1. || vertex.color.r == 0. {
-        out.color = vertex.color;
-    } else {
-        out.color = (vertex.color + vec4(
-            f32(section_group),
-            0.,
-            0.,
-            0.
-        ) / 13.);
-    }
+    // if abs(vertex.color.r - 1.0) < 0.001 || abs(vertex.color.r) < 0.001 {
+    //     out.color = vertex.color;
+    // } else {
+    //     out.color = (vertex.color + vec4(
+    //         f32(section_group),
+    //         0.,
+    //         0.,
+    //         0.
+    //     ) / 13.);
+    // }
+    out.color = vertex.color;
     #endif
 
     return out;

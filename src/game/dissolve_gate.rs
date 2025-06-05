@@ -1,13 +1,13 @@
-use std::time::Duration;
+use std::{f32::consts::FRAC_PI_4, time::Duration};
 
-use avian3d::prelude::{
+use avian3d::{math::FRAC_PI_2, prelude::{
     ColliderOf, CollisionEventsEnabled, CollisionLayers, OnCollisionStart, Sensor,
-};
-use bevy::{color::palettes::css::RED, prelude::*};
+}};
+use bevy::{color::palettes::{css::RED, tailwind::RED_300}, prelude::*};
 
 use crate::{
     asset_management::asset_tag_components::DissolveGate, game::{player::Held, signals::DespawnAfter},
-    rendering::unlit_material::UnlitMaterial,
+    rendering::{test_material::{TestMaterial, TestMaterialExtension, TestMaterialParams}, unlit_material::UnlitMaterial},
 };
 
 use super::{
@@ -31,6 +31,7 @@ fn register_dissolve_gates(
     mut commands: Commands,
     q_new_gate: Query<(Entity, &Children), Added<DissolveGate>>,
     mut unlit_materials: ResMut<Assets<UnlitMaterial>>,
+    mut test_materials: ResMut<Assets<TestMaterial>>,
     q_unlit_objects: Query<&MeshMaterial3d<UnlitMaterial>>,
 ) {
     for (gate_entity, gate_children) in &q_new_gate {
@@ -38,14 +39,27 @@ fn register_dissolve_gates(
             if let Ok(material_handle) = q_unlit_objects.get(gate_child) {
                 let mut old_material = unlit_materials.get(material_handle).unwrap().clone();
                 old_material.base.alpha_mode = AlphaMode::Blend;
-                old_material.extension.params.alpha = 0.5;
-                old_material.extension.params.blend_color = RED.into();
-                old_material.extension.params.blend_factor = 1.0;
+                // old_material.extension.params.alpha = 0.5;
+                // old_material.extension.params.blend_color = RED.into();
+                // old_material.extension.params.blend_factor = 1.0;
 
+                let test_material = test_materials.add(TestMaterial {
+                    base: old_material.base,
+                    extension: TestMaterialExtension {
+                        params: TestMaterialParams {
+                            stripe_color: RED_300.into(),
+                            stripe_frequency: 10.0,
+                            stripe_angle: FRAC_PI_4,
+                            stripe_thickness: 0.2,
+                            scroll_speed: 0.2,
+                        },
+                    },
+                });
                 commands
                     .entity(gate_child)
+                    .remove::<MeshMaterial3d<UnlitMaterial>>()
                     .insert((
-                        MeshMaterial3d(unlit_materials.add(old_material)),
+                        MeshMaterial3d(test_material),
                         CollisionEventsEnabled,
                         CollisionLayers::new(GameLayer::Default, [GameLayer::Device, GameLayer::Player]),
                         Sensor,

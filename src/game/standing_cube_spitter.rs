@@ -180,7 +180,9 @@ fn cube_spitter_direct_signal(
         }
 
         for object in spitter_owned_objects.iter() {
-            commands.entity(*object).insert(Tombstone).despawn()
+            if let Ok(mut ec) = commands.get_entity(*object) {
+                ec.insert(Tombstone).despawn()
+            }
         }
         
         spitter_owned_objects.clear();
