@@ -8,7 +8,7 @@ impl InputContext for UpdateInputContext {
 
 pub struct FixedInputContext;
 impl InputContext for FixedInputContext {
-    type Schedule = FixedLast;  // impulses don't work same frame unless we handle interacts in fixed schedule and inputs in fixedlast - this introduces a whole physics tick of input delay :(
+    type Schedule = FixedPreUpdate;
 }
 
 pub fn input_plugin(app: &mut App) {

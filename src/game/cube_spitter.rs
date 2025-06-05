@@ -1,8 +1,8 @@
 use std::time::Duration;
 
 use avian3d::prelude::{
-    CollisionEventsEnabled, CollisionLayers, ExternalImpulse, RigidBody, RigidBodyColliders, RotationInterpolation,
-    TransformInterpolation,
+    CollisionEventsEnabled, CollisionLayers, ExternalImpulse, LinearVelocity, RigidBody,
+    RigidBodyColliders, RotationInterpolation, TransformInterpolation,
 };
 use bevy::prelude::*;
 use bevy_tween::{
@@ -20,7 +20,11 @@ use crate::{
 };
 
 use super::{
-    pressure_plate::{POWER_ANIMATION_DURATION_SEC, POWER_MATERIAL_INTENSITY}, signals::{default_signal_collisions, DirectSignal, MaterialIntensityInterpolator, OwnedObjects}, DespawnOnFinish, GameLayer
+    DespawnOnFinish, GameLayer,
+    pressure_plate::{POWER_ANIMATION_DURATION_SEC, POWER_MATERIAL_INTENSITY},
+    signals::{
+        DirectSignal, MaterialIntensityInterpolator, OwnedObjects, default_signal_collisions,
+    },
 };
 
 pub fn cube_spitter_plugin(app: &mut App) {
@@ -82,12 +86,14 @@ pub fn cube_spitter_direct_signal(
                             WeightedCubeColors::Cyan => game_assets.weighted_cube_cyan.clone(),
                         }),
                         Transform::from_translation(
-                            spitter_transform.translation + Vec3::Y * 14.5 + -Vec3::X * 20.,
+                            spitter_transform.translation
+                                + Vec3::Y * 5.
+                                + spitter_transform.forward() * -10.,
                         ),
                         RigidBody::Dynamic,
                         TransformInterpolation,
                         RotationInterpolation,
-                        ExternalImpulse::new(Vec3::new(-5000., 0., 0.)),
+                        LinearVelocity(spitter_transform.forward() * -50.),
                         WeightedCube {
                             color: WeightedCubeColors::Cyan,
                         },

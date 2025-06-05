@@ -3,8 +3,7 @@ use std::time::Duration;
 use avian3d::{
     parry::na::Owned,
     prelude::{
-        Collider, CollisionEventsEnabled, CollisionLayers, ExternalImpulse, RigidBody,
-        RigidBodyColliders, RotationInterpolation, TransformInterpolation,
+        Collider, CollisionEventsEnabled, CollisionLayers, ExternalImpulse, LinearVelocity, RigidBody, RigidBodyColliders, RotationInterpolation, TransformInterpolation
     },
 };
 use bevy::prelude::*;
@@ -177,7 +176,6 @@ fn cube_spitter_direct_signal(
         }
 
         for object in spitter_owned_objects.iter() {
-            println!("despawning obj {:?}", object);
             commands.entity(*object).insert(Tombstone).despawn()
         }
         
@@ -194,7 +192,7 @@ fn cube_spitter_direct_signal(
                 RigidBody::Dynamic,
                 TransformInterpolation,
                 RotationInterpolation,
-                ExternalImpulse::new(spitter_transform.forward() * -5000.),
+                LinearVelocity(spitter_transform.forward() * -50.),
                 WeightedCube {
                     color: WeightedCubeColors::Cyan,
                 },
@@ -203,7 +201,6 @@ fn cube_spitter_direct_signal(
 
         // add the new cube to the owned objects
         spitter_owned_objects.0.push(cube_id);
-        println!("pushing obj {}", cube_id);
     }
 }
 
@@ -359,7 +356,7 @@ fn cube_after_delay(
                         RigidBody::Dynamic,
                         TransformInterpolation,
                         RotationInterpolation,
-                        ExternalImpulse::new(spitter_transform.forward() * -5000.),
+                        LinearVelocity(spitter_transform.forward() * -50.),
                         WeightedCube {
                             color: WeightedCubeColors::Cyan,
                         },

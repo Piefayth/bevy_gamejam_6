@@ -1,9 +1,8 @@
 use std::time::Duration;
 
 use avian3d::prelude::{
-    ColliderConstructor, ColliderOf, CollisionEventsEnabled,
-    CollisionLayers, RigidBody, RigidBodyColliders, Sensor,
-    SpatialQuery, SpatialQueryFilter,
+    ColliderConstructor, ColliderOf, CollisionEventsEnabled, CollisionLayers, RigidBody,
+    RigidBodyColliders, Sensor, SpatialQuery, SpatialQueryFilter,
 };
 use bevy::prelude::*;
 use bevy_enhanced_input::events::Completed;
@@ -14,19 +13,19 @@ use bevy_tween::{
     tween::{AnimationTarget, TargetComponent},
 };
 
-use crate::{asset_management::{
-    asset_loading::GameAssets,
-    asset_tag_components::{
-        BigRedButton, CubeSpitter, ExitDoorShutter, SignalSpitter, StandingCubeSpitter, WeightedCube
+use crate::{
+    GameState,
+    asset_management::{
+        asset_loading::GameAssets,
+        asset_tag_components::{
+            BigRedButton, CubeSpitter, ExitDoorShutter, Immobile, PowerButton, SignalSpitter,
+            StandingCubeSpitter, WeightedCube,
+        },
     },
-}, GameState};
+};
 
 use super::{
-    GameLayer,
-    dissolve_gate::Dissolveable,
-    input::UseInteract,
-    player::{Held, RightHand},
-    signals::{MAX_SIGNAL_TRAVEL_DIST, Signal},
+    button::button_pressed, dissolve_gate::Dissolveable, input::UseInteract, player::{Held, RightHand}, signals::{Signal, MAX_SIGNAL_TRAVEL_DIST}, GameLayer
 };
 
 pub fn interaction_plugin(app: &mut App) {
@@ -34,9 +33,10 @@ pub fn interaction_plugin(app: &mut App) {
         FixedPreUpdate,
         (
             register_big_red_button_interaction,
+            register_power_button_interaction,
             register_weighted_cube_interaction,
             register_signal_spitter_interaction,
-            register_standing_cube_spitter_interaction
+            register_standing_cube_spitter_interaction,
         ),
     );
 }
@@ -202,6 +202,21 @@ fn register_big_red_button_interaction(
     }
 }
 
+fn register_power_button_interaction(
+    mut commands: Commands,
+    q_new_buttons: Query<&Children, Added<PowerButton>>,
+    q_mesh: Query<Entity, With<Mesh3d>>,
+) {
+    for children in &q_new_buttons {
+        if let Some(found_child) = children.iter().find(|&child| q_mesh.contains(child)) {
+            commands
+                .entity(found_child)
+                .observe(button_pressed)
+                .insert(Interactable::new(Interactions::Press));
+        }
+    }
+}
+
 fn pick_up(
     trigger: Trigger<Interacted>,
     mut commands: Commands,
@@ -239,55 +254,65 @@ fn register_weighted_cube_interaction(
 
 fn register_signal_spitter_interaction(
     mut commands: Commands,
-    q_new_spitters: Query<(Entity, &Children, &Transform), Added<SignalSpitter>>,
+    q_new_spitters: Query<(Entity, &Children, &Transform, Has<Immobile>), (Added<SignalSpitter>)>,
     q_mesh: Query<Entity, With<Mesh3d>>,
 ) {
-    for (new_spitter, children, transform) in &q_new_spitters {
+    for (new_spitter, children, transform, is_immobile) in &q_new_spitters {
         if children.len() > 1 {
             warn!("spitter cannot have more than one child");
             continue;
         }
 
         if let Some(found_child) = children.iter().find(|&child| q_mesh.contains(child)) {
-            commands
-                .entity(found_child)
-                .observe(pick_up)
-                .insert((Interactable::new(Interactions::PickUp),));
+            if is_immobile {
+                commands.entity(new_spitter).insert(RigidBody::Static);
+            } else {
+                commands
+                    .entity(found_child)
+                    .observe(pick_up)
+                    .insert((Interactable::new(Interactions::PickUp),));
 
-            commands.entity(new_spitter).insert((
-                RigidBody::Kinematic,
-                Dissolveable {
-                    respawn_transform: Some(*transform),
-                },
-            ));
+                commands.entity(new_spitter).insert((
+                    RigidBody::Kinematic,
+                    Dissolveable {
+                        respawn_transform: Some(*transform),
+                    },
+                ));
+            }
         }
     }
 }
 
 fn register_standing_cube_spitter_interaction(
     mut commands: Commands,
-    q_new_spitters: Query<(Entity, &Children, &Transform), Added<StandingCubeSpitter>>,
+    q_new_spitters: Query<
+        (Entity, &Children, &Transform, Has<Immobile>),
+        (Added<StandingCubeSpitter>, Without<Immobile>),
+    >,
     q_mesh: Query<Entity, With<Mesh3d>>,
 ) {
-    for (new_spitter, children, transform) in &q_new_spitters {
+    for (new_spitter, children, transform, is_immobile) in &q_new_spitters {
         if children.len() > 1 {
             warn!("spitter cannot have more than one child");
             continue;
         }
 
         if let Some(found_child) = children.iter().find(|&child| q_mesh.contains(child)) {
-            commands
-                .entity(found_child)
-                .observe(pick_up)
-                .insert((Interactable::new(Interactions::PickUp),));
+            if is_immobile {
+                commands.entity(new_spitter).insert(RigidBody::Static);
+            } else {
+                commands
+                    .entity(found_child)
+                    .observe(pick_up)
+                    .insert((Interactable::new(Interactions::PickUp),));
 
-            commands.entity(new_spitter).insert((
-                RigidBody::Kinematic,
-                Dissolveable {
-                    respawn_transform: Some(*transform),
-                },
-            ));
+                commands.entity(new_spitter).insert((
+                    RigidBody::Kinematic,
+                    Dissolveable {
+                        respawn_transform: Some(*transform),
+                    },
+                ));
+            }
         }
     }
 }
-

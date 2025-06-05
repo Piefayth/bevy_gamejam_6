@@ -7,7 +7,7 @@ use avian3d::prelude::{
 };
 use bevy::prelude::*;
 use bevy_tween::{
-    bevy_time_runner::TimeRunner, combinator::{sequence, tween}, interpolate::translation, prelude::{AnimationBuilderExt, EaseKind, Interpolator}, tween::{AnimationTarget, IntoTarget, TargetAsset, TargetComponent}
+    bevy_time_runner::{TimeRunner, TimeSpan}, combinator::{sequence, tween}, interpolate::translation, prelude::{AnimationBuilderExt, EaseKind, Interpolator}, tween::{AnimationTarget, IntoTarget, TargetAsset, TargetComponent}
 };
 
 use crate::{
@@ -20,7 +20,7 @@ use crate::{
 };
 
 use super::{
-    door::PoweredTimer, pressure_plate::{PoweredBy, POWER_ANIMATION_DURATION_SEC, POWER_MATERIAL_INTENSITY}, signals::{DirectSignal, MaterialIntensityInterpolator, Powered, Signal}, standing_cube_spitter::Tombstone, DespawnOnFinish, GameLayer
+    door::PoweredTimer, player::Held, pressure_plate::{PoweredBy, POWER_ANIMATION_DURATION_SEC, POWER_MATERIAL_INTENSITY}, signals::{DirectSignal, MaterialIntensityInterpolator, Powered, Signal}, standing_cube_spitter::Tombstone, DespawnOnFinish, GameLayer
 };
 
 #[derive(Component)]
@@ -37,11 +37,8 @@ impl CubeDischarge {
 }
 
 // Constants for cube discharge detection
-const CUBE_DISCHARGE_RADIUS: f32 = 6.0;
+const CUBE_DISCHARGE_RADIUS: f32 = 12.0;
 
-// Component to track if cube is held (you'll need to add this when cubes are picked up)
-#[derive(Component)]
-pub struct Held;
 
 pub fn cube_plugin(app: &mut App) {
     app.add_systems(FixedPreUpdate, (register_cube_signals,))
@@ -64,10 +61,14 @@ fn cube_discharge_detection(
             With<WeightedCube>,
             With<Powered>,
             Without<PoweredBy>,
+            Without<Held>,
         ),
     >,
     spatial_query: SpatialQuery,
     q_collider_of: Query<&ColliderOf>,
+    q_discharging: Query<(), With<CubeDischarge>>,
+    q_powered: Query<(), With<Powered>>,
+    time: Res<Time>,
 ) {
     for (cube_entity, cube_transform) in q_cubes.iter() {
         // Create spherical detection shape
@@ -82,6 +83,7 @@ fn cube_discharge_detection(
             &SpatialQueryFilter::from_mask([GameLayer::Device]),
         );
 
+        let mut any_discharged = false;
         // Check each overlapping entity
         for collider_entity in overlapping {
             // Skip self
@@ -96,22 +98,24 @@ fn cube_discharge_detection(
                 collider_entity
             };
 
-            // Skip if it's the same as the cube entity
-            if target_entity == cube_entity {
+            // Skip if it's the same as the cube entity or if it's a discharging cube, or if it's already powered
+            if target_entity == cube_entity || q_discharging.contains(target_entity) || q_powered.contains(target_entity) {
                 continue;
             }
 
+            any_discharged = true;
             // Trigger DirectSignal on the target entity
             commands.trigger_targets(DirectSignal, target_entity);
 
             // Depower the cube and add discharge cooldown
+            // Note, when we remove break, this needs to happen outside of the loop
+        }
+
+        if any_discharged {
             commands
                 .entity(cube_entity)
                 .remove::<Powered>()
                 .try_insert(CubeDischarge::new());
-
-            // Break after first discharge to prevent multiple simultaneous discharges
-            break;
         }
     }
 }
@@ -169,9 +173,20 @@ fn cube_receive_power(
     q_powered_cube: Query<(Entity, &RigidBodyColliders), (With<WeightedCube>, Added<Powered>)>,
     q_unlit_objects: Query<&MeshMaterial3d<UnlitMaterial>>,
     unlit_materials: Res<Assets<UnlitMaterial>>,
+    q_tween: Query<(), With<TimeSpan>>,
+    q_children: Query<&Children, With<Collider>>,
 ) {
     for (powered_cube, powered_cube_colliders) in &q_powered_cube {
         for collider_entity in powered_cube_colliders.iter() {
+            // Clear existing tweens first
+            if let Ok(collider_children) = q_children.get(collider_entity) {
+                for child in collider_children.iter() {
+                    if q_tween.contains(child) {
+                        commands.entity(child).despawn();
+                    }
+                }
+            }
+
             if let Ok(material_handle) = q_unlit_objects.get(collider_entity) {
                 if let Some(material) = unlit_materials.get(material_handle) {
                     let current_intensity = material.extension.params.intensity;
@@ -205,9 +220,20 @@ fn cube_lose_power(
     q_cube: Query<(Entity, &RigidBodyColliders), (With<WeightedCube>, Without<Tombstone>)>,
     q_unlit_objects: Query<&MeshMaterial3d<UnlitMaterial>>,
     unlit_materials: Res<Assets<UnlitMaterial>>,
+    q_tween: Query<(), With<TimeSpan>>,
+    q_children: Query<&Children, With<Collider>>,
 ) {
     if let Ok((cube_entity, cube_colliders)) = q_cube.get(trigger.target()) {
         for collider_entity in cube_colliders.iter() {
+            // Clear existing tweens first
+            if let Ok(collider_children) = q_children.get(collider_entity) {
+                for child in collider_children.iter() {
+                    if q_tween.contains(child) {
+                        commands.entity(child).despawn();
+                    }
+                }
+            }
+
             if let Ok(material_handle) = q_unlit_objects.get(collider_entity) {
                 if let Some(material) = unlit_materials.get(material_handle) {
                     let current_intensity = material.extension.params.intensity;

@@ -97,6 +97,19 @@ pub struct Inert {
     pub unused: bool,
 }
 
+#[derive(Component, Reflect, Debug)]
+#[reflect(Component)]
+pub struct Immobile {
+    pub unused: bool,
+}
+
+#[derive(Component, Reflect, Debug)]
+#[reflect(Component)]
+pub struct PowerButton {
+    pub unused: bool,
+}
+
+
 pub fn asset_tag_components_plugin(app: &mut App) {
     app.register_type::<RoomWall>()
         .register_type::<BigRedButton>()
@@ -114,5 +127,7 @@ pub fn asset_tag_components_plugin(app: &mut App) {
         .register_type::<Door>()
         .register_type::<DoorPole>()
         .register_type::<Inert>()
+        .register_type::<Immobile>()
+        .register_type::<PowerButton>()
         ;
 }

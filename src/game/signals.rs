@@ -79,6 +79,7 @@ pub fn default_signal_collisions(
 pub struct SignalAfterDelay {
     pub delay_ms: u32,
     pub spawn_time: Duration,
+    pub signal_size: f32
 }
 
 
@@ -102,10 +103,16 @@ fn signal_after_delay(
 
         if elapsed_since_spawn >= Duration::from_millis(signal_delay.delay_ms as u64) {
             // Delay is complete, spawn the signal
+            let y_amount_to_look_good = if signal_delay.signal_size > 10. { // actually depends on where we consider the visual "launch point" on each spitter model to be
+                20.
+            } else {
+                10.
+            };
+
             if let Ok(global_transform) = q_global_transform.get(child_of.0) {
                 let spitter_forward = -global_transform.forward();
                 let start_loc =
-                    global_transform.translation() + Vec3::Y * 10. + spitter_forward * 5.;
+                    global_transform.translation() + Vec3::Y * y_amount_to_look_good + spitter_forward * 10.;
 
                 // Create transform that faces the direction the spitter is pointing
                 let signal_transform =
@@ -114,12 +121,12 @@ fn signal_after_delay(
                 let signal_indicator = commands
                     .spawn((
                         ColliderConstructor::Cuboid {
-                            x_length: 10.,
-                            y_length: 10.,
+                            x_length: signal_delay.signal_size,
+                            y_length: signal_delay.signal_size,
                             z_length: 2.0,
                         },
                         CollisionLayers::new(GameLayer::Signal, [GameLayer::Device]),
-                        Mesh3d(meshes.add(Cuboid::new(10., 10., 2.0))),
+                        Mesh3d(meshes.add(Cuboid::new(signal_delay.signal_size, signal_delay.signal_size, 2.0))),
                         MeshMaterial3d(game_assets.cyan_signal_material.clone()),
                         signal_transform,
                         AnimationTarget,
@@ -169,7 +176,7 @@ fn despawn_after_system(
         despawn_after.timer.tick(time.delta());
 
         if despawn_after.timer.finished() {
-            commands.entity(entity).despawn();
+            commands.entity(entity).try_despawn();
         }
     }
 }

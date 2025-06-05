@@ -4,6 +4,7 @@ use avian3d::{
 };
 use bevy::prelude::*;
 use bevy_tween::{TweenSystemSet, bevy_time_runner::TimeRunnerEnded};
+use button::button_plugin;
 use cube_spitter::cube_spitter_plugin;
 use dissolve_gate::dissolve_gate_plugin;
 use door::door_plugin;
@@ -29,6 +30,7 @@ pub mod signal_spitter;
 pub mod signals;
 pub mod standing_cube_spitter;
 pub mod weighted_cube;
+pub mod button;
 
 pub fn gameplay_plugins(app: &mut App) {
     app.add_plugins((
@@ -46,6 +48,7 @@ pub fn gameplay_plugins(app: &mut App) {
         cube_spitter_plugin,
         cube_plugin,
         standing_cube_spitter_plugin,
+        button_plugin,
     ))
     .insert_resource(Gravity(Vec3::NEG_Y * 19.6));
 
