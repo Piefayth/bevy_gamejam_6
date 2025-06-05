@@ -137,7 +137,7 @@ fn signal_after_delay(
                         DespawnAfter::new(Duration::from_secs(MAX_SIGNAL_LIFETIME_SECS)), // Despawn after 10 seconds
                     ))
                     .id();
-
+                
                 commands.entity(signal_indicator).animation().insert(tween(
                     Duration::from_secs(MAX_SIGNAL_LIFETIME_SECS),
                     EaseKind::Linear,

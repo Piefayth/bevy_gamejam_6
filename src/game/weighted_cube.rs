@@ -112,6 +112,7 @@ fn cube_discharge_detection(
         }
 
         if any_discharged {
+            println!("inserting discharge");
             commands
                 .entity(cube_entity)
                 .remove::<Powered>()
@@ -149,6 +150,7 @@ fn update_cube_discharge_timers(
 
         if discharge.timer.finished() {
             // Remove the discharge cooldown component
+            println!("removing discharge");
             commands.entity(cube_entity).remove::<CubeDischarge>();
         }
     }
