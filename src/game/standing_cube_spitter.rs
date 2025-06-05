@@ -42,7 +42,7 @@ pub fn standing_cube_spitter_plugin(app: &mut App) {
     )
     .add_systems(
         FixedLast,
-        (handle_continuous_cube_emission, cube_after_delay).run_if(in_state(GameState::Playing)),
+        (check_and_replace_cubes,).run_if(in_state(GameState::Playing)),
     );
 }
 
@@ -85,44 +85,48 @@ fn register_standing_cube_spitter_signals(
         }
         commands
             .entity(spitter_entity)
-            .insert((
-                ContinuousEmission { interval_ms: 3000 },
-                OwnedObjects::default(),
-            ))
+            .insert(OwnedObjects::default())
             .observe(cube_spitter_direct_signal)
             .observe(cube_spitter_receive_power)
             .observe(cube_spitter_lose_power);
     }
 }
 
-fn handle_continuous_cube_emission(
+// New system to check if powered spitters need cube replacement
+fn check_and_replace_cubes(
     mut commands: Commands,
-    q_powered_spitters: Query<
-        (Entity, &ContinuousEmission),
+    mut q_powered_spitters: Query<
+        (Entity, &GlobalTransform, &mut OwnedObjects),
         (With<StandingCubeSpitter>, With<Powered>),
     >,
-    q_children: Query<&Children>,
-    q_signal_after_delay: Query<(), With<CubeAfterDelay>>,
-    time: Res<Time>,
+    q_existing_entities: Query<Entity>, // To check if owned entities still exist
+    game_assets: Res<GameAssets>,
 ) {
-    for (spitter_entity, continuous_emission) in &q_powered_spitters {
-        // Check if this spitter has any active SignalAfterDelay children
-        let mut has_pending_signal = false;
-        if let Ok(children) = q_children.get(spitter_entity) {
-            for child in children.iter() {
-                if q_signal_after_delay.contains(child) {
-                    has_pending_signal = true;
-                    break;
-                }
-            }
-        }
+    for (spitter_entity, spitter_transform, mut spitter_owned_objects) in &mut q_powered_spitters {
+        // Remove any owned objects that no longer exist
+        spitter_owned_objects.0.retain(|&entity| q_existing_entities.contains(entity));
+        
+        // If no cubes exist, spawn a new one immediately
+        if spitter_owned_objects.0.is_empty() {
+            let cube_id = commands
+                .spawn((
+                    SceneRoot(game_assets.weighted_cube_cyan.clone()),
+                    Transform::from_translation(
+                        spitter_transform.translation()
+                            + Vec3::Y * 5.
+                            + spitter_transform.forward() * -10.,
+                    ),
+                    RigidBody::Dynamic,
+                    TransformInterpolation,
+                    RotationInterpolation,
+                    LinearVelocity(spitter_transform.forward() * -50.),
+                    WeightedCube {
+                        color: WeightedCubeColors::Cyan,
+                    },
+                ))
+                .id();
 
-        // If no pending signal, add a new one to continue the cycle
-        if !has_pending_signal {
-            commands.entity(spitter_entity).with_child(CubeAfterDelay {
-                delay_ms: continuous_emission.interval_ms,
-                spawn_time: time.elapsed(),
-            });
+            spitter_owned_objects.0.push(cube_id);
         }
     }
 }
@@ -207,15 +211,15 @@ fn cube_spitter_direct_signal(
 fn cube_spitter_receive_power(
     trigger: Trigger<OnAdd, Powered>,
     mut commands: Commands,
-    q_spitter: Query<(Entity, &RigidBodyColliders, &ContinuousEmission), With<StandingCubeSpitter>>,
+    mut q_spitter: Query<(Entity, &RigidBodyColliders, &GlobalTransform, &mut OwnedObjects), With<StandingCubeSpitter>>,
     q_unlit_objects: Query<&MeshMaterial3d<UnlitMaterial>>,
     unlit_materials: Res<Assets<UnlitMaterial>>,
     q_tween: Query<(), With<TimeSpan>>,
     q_children: Query<&Children, With<Collider>>,
-    time: Res<Time>,
+    game_assets: Res<GameAssets>,
 ) {
-    if let Ok((spitter_entity, spitter_children, continuous_spawning)) =
-        q_spitter.get(trigger.target())
+    if let Ok((spitter_entity, spitter_children, spitter_transform, mut spitter_owned_objects)) =
+        q_spitter.get_mut(trigger.target())
     {
         // Animate material to powered state
         for collider_entity in spitter_children.iter() {
@@ -252,18 +256,29 @@ fn cube_spitter_receive_power(
             }
         }
 
-        // Start continuous cube spawning when powered
-        commands.entity(spitter_entity).with_child(CubeAfterDelay {
-            delay_ms: continuous_spawning.interval_ms,
-            spawn_time: time.elapsed(),
-        });
-    }
-}
+        // If no cubes exist when powered, spawn one immediately
+        if spitter_owned_objects.0.is_empty() {
+            let cube_id = commands
+                .spawn((
+                    SceneRoot(game_assets.weighted_cube_cyan.clone()),
+                    Transform::from_translation(
+                        spitter_transform.translation()
+                            + Vec3::Y * 5.
+                            + spitter_transform.forward() * -10.,
+                    ),
+                    RigidBody::Dynamic,
+                    TransformInterpolation,
+                    RotationInterpolation,
+                    LinearVelocity(spitter_transform.forward() * -50.),
+                    WeightedCube {
+                        color: WeightedCubeColors::Cyan,
+                    },
+                ))
+                .id();
 
-#[derive(Component)]
-pub struct CubeAfterDelay {
-    pub delay_ms: u32,
-    pub spawn_time: Duration,
+            spitter_owned_objects.0.push(cube_id);
+        }
+    }
 }
 
 fn cube_spitter_lose_power(
@@ -274,7 +289,6 @@ fn cube_spitter_lose_power(
     unlit_materials: Res<Assets<UnlitMaterial>>,
     q_tween: Query<(), With<TimeSpan>>,
     q_children: Query<&Children>,
-    q_cube_after_delay: Query<(), With<CubeAfterDelay>>,
 ) {
     if let Ok((spitter_entity, spitter_children)) = q_spitter.get(trigger.target()) {
         // Animate material back to unpowered state
@@ -311,63 +325,6 @@ fn cube_spitter_lose_power(
                 }
             }
         }
-
-        // Stop continuous cube spawning by removing all SignalAfterDelay children
-        if let Ok(children) = q_children.get(spitter_entity) {
-            for child in children.iter() {
-                if q_cube_after_delay.contains(child) {
-                    commands.entity(child).despawn();
-                }
-            }
-        }
-    }
-}
-
-fn cube_after_delay(
-    mut commands: Commands,
-    q_waiting: Query<(Entity, &CubeAfterDelay, &ChildOf)>, // Removed GlobalTransform and OwnedObjects
-    mut q_spitter: Query<(&GlobalTransform, &mut OwnedObjects), With<StandingCubeSpitter>>, // Query parent separately
-    time: Res<Time>,
-    game_assets: Res<GameAssets>,
-) {
-    for (entity, signal_delay, child_of) in q_waiting.iter() {
-        let elapsed_since_spawn = time.elapsed() - signal_delay.spawn_time;
-
-        if elapsed_since_spawn >= Duration::from_millis(signal_delay.delay_ms as u64) {
-            // Get the parent spitter's transform and owned objects
-            if let Ok((spitter_transform, mut spitter_owned_objects)) =
-                q_spitter.get_mut(child_of.0)
-            {
-                // Clear existing cubes
-                for object in spitter_owned_objects.iter() {
-                    commands.entity(*object).despawn();
-                }
-                spitter_owned_objects.clear();
-
-                // Spawn new cube
-                let cube_id = commands
-                    .spawn((
-                        SceneRoot(game_assets.weighted_cube_cyan.clone()),
-                        Transform::from_translation(
-                            spitter_transform.translation()
-                                + Vec3::Y * 5.
-                                + spitter_transform.forward() * -10.,
-                        ),
-                        RigidBody::Dynamic,
-                        TransformInterpolation,
-                        RotationInterpolation,
-                        LinearVelocity(spitter_transform.forward() * -50.),
-                        WeightedCube {
-                            color: WeightedCubeColors::Cyan,
-                        },
-                    ))
-                    .id();
-
-                spitter_owned_objects.0.push(cube_id);
-
-                // Remove the delay component
-                commands.entity(entity).remove::<CubeAfterDelay>();
-            }
-        }
+        // No need to remove delay components since we're not using them anymore
     }
 }

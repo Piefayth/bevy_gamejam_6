@@ -5,7 +5,7 @@ use bevy::prelude::*;
 use bevy_tween::{bevy_time_runner::TimeSpan, combinator::{sequence, tween}, prelude::{AnimationBuilderExt, EaseKind}, tween::{AnimationTarget, TargetAsset}};
 
 use crate::{
-    asset_management::asset_tag_components::{ChargePad, PowerButton, PressurePlate},
+    asset_management::asset_tag_components::{ChargePad, Door, PowerButton, PressurePlate},
     game::signals::DirectSignal,
     rendering::unlit_material::UnlitMaterial,
 };
@@ -32,13 +32,15 @@ fn register_buttons(
     mut unlit_materials: ResMut<Assets<UnlitMaterial>>,
     q_unlit_objects: Query<&MeshMaterial3d<UnlitMaterial>>,
     q_children: Query<&Children>,
+    q_doors: Query<&Door>, 
 ) {
     for (button_entity, button_children, button_child_of) in &q_new_button {
         if let Ok(parent_children) = q_children.get(button_child_of.parent()) {
             let mut button_targets: Vec<Entity> = vec![];
 
             for sibling in parent_children.iter() {
-                if sibling != button_entity {
+                // buttons can't power doors directly
+                if sibling != button_entity && !q_doors.contains(sibling) {
                     button_targets.push(sibling);
                 }
             }

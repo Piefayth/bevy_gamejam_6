@@ -25,15 +25,18 @@ pub fn door_plugin(app: &mut App) {
     app.add_systems(FixedPreUpdate, register_doors).add_systems(FixedUpdate, update_powered_timers);
 }
 
+#[derive(Component)]
+pub struct DoorOriginalPosition(pub Vec3);
+
 fn register_doors(
     mut commands: Commands,
-    q_new_door: Query<(Entity, &Children, &ChildOf), Added<Door>>,
+    q_new_door: Query<(Entity, &Children, &ChildOf, &Transform), Added<Door>>,
     mut unlit_materials: ResMut<Assets<UnlitMaterial>>,
     q_unlit_objects: Query<&MeshMaterial3d<UnlitMaterial>>,
     q_children: Query<&Children>,
     q_pole: Query<Entity, With<DoorPole>>,
 ) {
-    for (door_entity, door_children, door_parent) in &q_new_door {
+    for (door_entity, door_children, door_parent, door_transform) in &q_new_door {
         for door_child in door_children.iter() {
             if let Ok(material_handle) = q_unlit_objects.get(door_child) {
                 let mut new_material = unlit_materials.get(material_handle).unwrap().clone();
@@ -93,7 +96,11 @@ fn register_doors(
 
         commands
             .entity(door_entity)
-            .insert((RigidBody::Kinematic, AnimationTarget));
+            .insert((
+                RigidBody::Kinematic, 
+                AnimationTarget,
+                DoorOriginalPosition(door_transform.translation)
+            ));
     }
 }
 
@@ -117,11 +124,13 @@ fn door_pole_direct_signal(
     }
 }
 
+const DOOR_LIFT_HEIGHT: f32 = 20.;
+
 fn on_power_added(
     trigger: Trigger<OnAdd, Powered>,
     mut commands: Commands,
     q_pole: Query<(&RigidBodyColliders, &Powers), With<DoorPole>>,
-    q_doors: Query<(Entity, &Transform, &Children), With<Door>>,
+    q_doors: Query<(Entity, &Transform, &Children, &DoorOriginalPosition), With<Door>>,
     q_unlit_objects: Query<&MeshMaterial3d<UnlitMaterial>>,
     q_tween: Query<(), With<TimeSpan>>,
     q_children: Query<&Children, With<Collider>>,
@@ -161,9 +170,9 @@ fn on_power_added(
 
         // Door animations - move doors UP when powered
         for powered_entity in pole_powers.iter() {
-            if let Ok((door_entity, door_transform, door_children)) = q_doors.get(powered_entity) {
+            if let Ok((door_entity, door_transform, door_children, original_pos)) = q_doors.get(powered_entity) {
                 let current_y = door_transform.translation.y;
-                let target_y = 3.0;
+                let target_y = original_pos.0.y + DOOR_LIFT_HEIGHT; // Lift 3 units from original position
 
                 // Clear existing tweens
                 for child in door_children.iter() {
@@ -171,11 +180,11 @@ fn on_power_added(
                         commands.entity(child).despawn();
                     }
                 }
-
+                
                 // Only animate if door needs to move up
                 if current_y < target_y {
                     let remaining_distance = target_y - current_y;
-                    let total_distance = target_y; // assuming start_y = 0.0
+                    let total_distance = DOOR_LIFT_HEIGHT; // Always 3 units up from original
                     let progress = remaining_distance / total_distance;
                     let duration = Duration::from_secs_f32(1.0 * progress);
 
@@ -186,8 +195,8 @@ fn on_power_added(
                             duration,
                             EaseKind::Linear,
                             TargetComponent::marker().with(translation(
-                                Vec3::new(0.0, current_y, 0.0),
-                                Vec3::new(0.0, target_y, 0.0),
+                                door_transform.translation,
+                                original_pos.0.with_y(target_y),
                             )),
                         ))
                         .insert(DespawnOnFinish);
@@ -201,7 +210,7 @@ fn on_power_removed(
     trigger: Trigger<OnRemove, Powered>,
     mut commands: Commands,
     q_pole: Query<(&RigidBodyColliders, &Powers), With<DoorPole>>,
-    q_doors: Query<(Entity, &Transform, &Children), With<Door>>,
+    q_doors: Query<(Entity, &Transform, &Children, &DoorOriginalPosition), With<Door>>,
     q_unlit_objects: Query<&MeshMaterial3d<UnlitMaterial>>,
     q_tween: Query<(), With<TimeSpan>>,
     q_children: Query<&Children, With<Collider>>,
@@ -241,9 +250,9 @@ fn on_power_removed(
 
         // Door animations - move doors DOWN when power removed
         for powered_entity in pole_powers.iter() {
-            if let Ok((door_entity, door_transform, door_children)) = q_doors.get(powered_entity) {
+            if let Ok((door_entity, door_transform, door_children, original_pos)) = q_doors.get(powered_entity) {
                 let current_y = door_transform.translation.y;
-                let start_y = 0.0;
+                let start_y = original_pos.0.y; // Return to original Y position
 
                 // Clear existing tweens
                 for child in door_children.iter() {
@@ -261,8 +270,8 @@ fn on_power_removed(
                             Duration::from_secs(1),
                             EaseKind::Linear,
                             TargetComponent::marker().with(translation(
-                                Vec3::new(0.0, current_y, 0.0),
-                                Vec3::new(0.0, start_y, 0.0),
+                                door_transform.translation,
+                                original_pos.0,
                             )),
                         ))
                         .insert(DespawnOnFinish);
@@ -271,6 +280,7 @@ fn on_power_removed(
         }
     }
 }
+
 fn update_powered_timers(
     mut commands: Commands,
     mut q_powered: Query<(Entity, &mut PoweredTimer)>,

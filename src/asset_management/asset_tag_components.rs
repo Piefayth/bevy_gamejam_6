@@ -1,7 +1,7 @@
 use avian3d::prelude::RigidBody;
 use bevy::prelude::*;
 
-use crate::game::dissolve_gate::Dissolveable;
+use crate::game::{dissolve_gate::Dissolveable, signals::Powered};
 
 // Thanks to a bug with Bevity, we need to make these tag components with any random field
 // whoops
@@ -110,6 +110,12 @@ pub struct PowerButton {
 }
 
 
+#[derive(Component, Reflect)]
+#[reflect(Component)]
+pub struct PermanentlyPowered {
+    pub unused: bool,
+}
+
 pub fn asset_tag_components_plugin(app: &mut App) {
     app.register_type::<RoomWall>()
         .register_type::<BigRedButton>()
@@ -129,5 +135,6 @@ pub fn asset_tag_components_plugin(app: &mut App) {
         .register_type::<Inert>()
         .register_type::<Immobile>()
         .register_type::<PowerButton>()
+        .register_type::<PermanentlyPowered>()
         ;
 }

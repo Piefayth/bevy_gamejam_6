@@ -13,11 +13,9 @@ use bevy_tween::{
 };
 
 use crate::{
-    GameState,
     asset_management::{
-        asset_loading::GameAssets,
-    },
-    rendering::unlit_material::UnlitMaterial,
+        asset_loading::GameAssets, asset_tag_components::PermanentlyPowered,
+    }, rendering::unlit_material::UnlitMaterial, GameState
 };
 
 use super::{
@@ -137,7 +135,7 @@ fn signal_after_delay(
                         DespawnAfter::new(Duration::from_secs(MAX_SIGNAL_LIFETIME_SECS)), // Despawn after 10 seconds
                     ))
                     .id();
-                
+
                 commands.entity(signal_indicator).animation().insert(tween(
                     Duration::from_secs(MAX_SIGNAL_LIFETIME_SECS),
                     EaseKind::Linear,
