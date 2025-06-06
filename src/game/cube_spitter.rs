@@ -170,7 +170,6 @@ fn cube_spitter_receive_power(
     if let Ok((spitter_children, spitter, spitter_transform, mut spitter_owned_objects)) =
         q_spitter.get_mut(trigger.target())
     {
-        println!("SPITTER GOT POWER YEAHHHH");
         // Animate material to powered state for each child
         for spitter_child in spitter_children.iter() {
             if let Ok(child_children) = q_children.get(spitter_child) {

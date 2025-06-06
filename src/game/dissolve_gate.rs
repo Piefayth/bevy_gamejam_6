@@ -6,7 +6,7 @@ use avian3d::{math::FRAC_PI_2, prelude::{
 use bevy::{color::palettes::{css::RED, tailwind::{PURPLE_300, RED_300}}, prelude::*};
 
 use crate::{
-    asset_management::asset_tag_components::DissolveGate, game::{player::Held, signals::DespawnAfter},
+    asset_management::asset_tag_components::DissolveGate, game::{player::Held, signals::DespawnAfter, standing_cube_spitter::Tombstone},
     rendering::{test_material::{TestMaterial, TestMaterialExtension, TestMaterialParams}, unlit_material::UnlitMaterial},
 };
 
@@ -105,11 +105,14 @@ pub fn handle_dissolve_collisions(
                 }
                 None => {
                     // Despawn the entity
-                    commands.entity(targeted_body.body).despawn();
-                    info!(
-                        "Dissolved entity {:?} despawned",
-                        targeted_body.body
-                    );
+                    if let Ok(mut ec) = commands.get_entity(targeted_body.body) {
+                        ec.insert(Tombstone).despawn();
+
+                        info!(
+                            "Dissolved entity {:?} despawned",
+                            targeted_body.body
+                        );
+                    }
                 }
             }
             return;
@@ -132,10 +135,14 @@ pub fn handle_dissolve_collisions(
                             );
                         }
                         None => {
-                            // Despawn the held entity
-                            commands.entity(held_entity).insert(DespawnAfter::new(Duration::from_millis(50)));
-
-                            info!("Dissolved held entity {:?} despawned", held_entity);
+                            if let Ok(mut ec) = commands.get_entity(held_entity) {
+                                ec.insert(Tombstone).despawn();
+                                
+                                info!(
+                                    "Dissolved entity {:?} despawned",
+                                    held_entity
+                                );
+                            }
                         }
                     }
                 }
