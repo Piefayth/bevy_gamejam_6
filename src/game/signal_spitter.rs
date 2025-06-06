@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use avian3d::prelude::{Collider, CollisionEventsEnabled, CollisionLayers, RigidBodyColliders};
+use avian3d::prelude::{Collider, CollisionEventsEnabled, CollisionLayers, LockedAxes, RigidBody, RigidBodyColliders};
 use bevy::prelude::*;
 use bevy_tween::{
     bevy_time_runner::TimeSpan,
@@ -10,7 +10,7 @@ use bevy_tween::{
 };
 
 use crate::{
-    asset_management::asset_tag_components::{Immobile, SignalSpitter}, rendering::unlit_material::UnlitMaterial, GameState,
+    asset_management::asset_tag_components::{Immobile, SignalSpitter}, game::player::Held, rendering::unlit_material::UnlitMaterial, GameState
 };
 
 use super::{
@@ -43,6 +43,23 @@ pub fn signal_spitter_plugin(app: &mut App) {
     app.add_systems(FixedPreUpdate, (register_signal_spitter_signals,))
         .add_systems(FixedUpdate, handle_continuous_signal_emission.run_if(in_state(GameState::Playing)));
 }
+
+fn sink_when_not_held(
+    trigger: Trigger<OnRemove, Held>,
+    q_rigid_body_colliders: Query<&RigidBodyColliders>,
+    mut commands: Commands,
+) {
+    commands.entity(trigger.target()).insert((RigidBody::Dynamic, LockedAxes::ALL_LOCKED.unlock_translation_y()));
+}
+
+fn dont_sink_when_held(
+    trigger: Trigger<OnAdd, Held>,
+    q_rigid_body_colliders: Query<&RigidBodyColliders>,
+    mut commands: Commands,
+) {
+    commands.entity(trigger.target()).insert((LockedAxes::ALL_LOCKED));
+}
+
 
 fn signal_spitter_direct_signal(
     trigger: Trigger<DirectSignal>,
@@ -138,7 +155,9 @@ fn register_signal_spitter_signals(
             .insert(ContinuousEmission::default()) // Add continuous emission component
             .observe(signal_spitter_direct_signal)
             .observe(signal_spitter_receive_power)
-            .observe(signal_spitter_lose_power);
+            .observe(signal_spitter_lose_power)
+            .observe(sink_when_not_held)
+            .observe(dont_sink_when_held);
     }
 }
 

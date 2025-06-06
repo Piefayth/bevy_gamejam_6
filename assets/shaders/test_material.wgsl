@@ -55,7 +55,8 @@ fn fragment(
     var out: FragmentOutput;
     
     // Choose color based on border vs stripe pattern
-    if (is_border) {
+    if (false) {
+    //if (is_border) {
         // Border area - use stripe color with full opacity
         out.color = vec4<f32>(params.stripe_color.rgb, 1.0);
     } else {

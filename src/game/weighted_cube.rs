@@ -37,7 +37,7 @@ impl CubeDischarge {
 }
 
 // Constants for cube discharge detection
-const CUBE_DISCHARGE_RADIUS: f32 = 12.0;
+const CUBE_DISCHARGE_RADIUS: f32 = 20.0;
 
 
 pub fn cube_plugin(app: &mut App) {
