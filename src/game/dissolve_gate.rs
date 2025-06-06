@@ -3,7 +3,7 @@ use std::{f32::consts::FRAC_PI_4, time::Duration};
 use avian3d::{math::FRAC_PI_2, prelude::{
     ColliderOf, CollisionEventsEnabled, CollisionLayers, OnCollisionStart, Sensor,
 }};
-use bevy::{color::palettes::{css::RED, tailwind::RED_300}, prelude::*};
+use bevy::{color::palettes::{css::RED, tailwind::{PURPLE_300, RED_300}}, prelude::*};
 
 use crate::{
     asset_management::asset_tag_components::DissolveGate, game::{player::Held, signals::DespawnAfter},
@@ -47,11 +47,11 @@ fn register_dissolve_gates(
                     base: old_material.base,
                     extension: TestMaterialExtension {
                         params: TestMaterialParams {
-                            stripe_color: RED_300.into(),
-                            stripe_frequency: 10.0,
+                            stripe_color: PURPLE_300.into(),
+                            stripe_frequency: 20.0,
                             stripe_angle: FRAC_PI_4,
-                            stripe_thickness: 0.2,
-                            scroll_speed: 0.2,
+                            stripe_thickness: 0.95,
+                            scroll_speed: 0.05,
                         },
                     },
                 });

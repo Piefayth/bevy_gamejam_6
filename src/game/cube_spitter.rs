@@ -1,9 +1,8 @@
 use std::time::Duration;
 
-use avian3d::prelude::{
-    CollisionEventsEnabled, CollisionLayers, ExternalImpulse, LinearVelocity, RigidBody,
-    RigidBodyColliders, RotationInterpolation, TransformInterpolation,
-};
+use avian3d::{parry::mass_properties::MassProperties, prelude::{
+    CollisionEventsEnabled, CollisionLayers, ExternalImpulse, LinearVelocity, Mass, RigidBody, RigidBodyColliders, RotationInterpolation, TransformInterpolation
+}};
 use bevy::prelude::*;
 use bevy_tween::{
     bevy_time_runner::TimeSpan,

@@ -11,22 +11,27 @@ use bevy_tween::{
 };
 
 use crate::{
-    asset_management::asset_tag_components::{Door, DoorPole},
+    asset_management::asset_tag_components::{Door, DoorPole, ExtraDoorPowerRequired},
     rendering::{section_color_prepass::DrawSection, unlit_material::UnlitMaterial},
 };
 
 use super::{
     DespawnOnFinish, GameLayer,
-    pressure_plate::{POWER_ANIMATION_DURATION_SEC, POWER_MATERIAL_INTENSITY, PoweredBy, Powers},
+    pressure_plate::{POWER_ANIMATION_DURATION_SEC, POWER_MATERIAL_INTENSITY},
     signals::{DirectSignal, MaterialIntensityInterpolator, Powered, default_signal_collisions},
 };
 
 pub fn door_plugin(app: &mut App) {
-    app.add_systems(FixedPreUpdate, register_doors).add_systems(FixedUpdate, update_powered_timers);
+    app.add_systems(FixedPreUpdate, register_doors)
+        .add_systems(FixedUpdate, update_powered_timers)
+        .add_systems(Update, check_door_power_requirements);
 }
 
 #[derive(Component)]
 pub struct DoorOriginalPosition(pub Vec3);
+
+#[derive(Component)]
+pub struct PowersDoor(pub Entity);
 
 fn register_doors(
     mut commands: Commands,
@@ -50,16 +55,18 @@ fn register_doors(
             commands.entity(door_child).remove::<DrawSection>();
         }
 
-        // Register the DoorPole
+        // Register all DoorPole siblings
         if let Ok(parent_children) = q_children.get(door_parent.parent()) {
             for maybe_pole in parent_children.iter() {
                 if maybe_pole != door_entity && q_pole.contains(maybe_pole) {
                     let pole = maybe_pole;
-                    commands.entity(door_entity).insert(PoweredBy(pole));
 
                     commands
                         .entity(pole)
-                        .insert(RigidBody::Static)
+                        .insert((
+                            RigidBody::Static,
+                            PowersDoor(door_entity), // Each pole powers this specific door
+                        ))
                         .observe(door_pole_direct_signal)
                         .observe(on_power_added)
                         .observe(on_power_removed);
@@ -89,7 +96,6 @@ fn register_doors(
                             }
                         }
                     }
-                    break; // Assuming only one DoorPole sibling
                 }
             }
         }
@@ -107,7 +113,7 @@ fn register_doors(
 #[derive(Component)]
 pub struct PoweredTimer(Timer);
 
-const DOOR_POLE_POWER_DURATION_SEC: u64 = 1;
+const DOOR_POLE_POWER_DURATION_SEC: u64 = 2;
 fn door_pole_direct_signal(
     trigger: Trigger<DirectSignal>,
     mut commands: Commands,
@@ -126,26 +132,97 @@ fn door_pole_direct_signal(
 
 const DOOR_LIFT_HEIGHT: f32 = 20.;
 
-pub struct PowersDoors(pub Vec<Entity>);
+fn count_powered_poles_for_door(
+    door_entity: Entity,
+    q_poles: &Query<&PowersDoor, (With<DoorPole>, With<Powered>)>
+) -> u32 {
+    q_poles.iter()
+        .filter(|powers_door| powers_door.0 == door_entity)
+        .count() as u32
+}
+
+fn check_door_power_requirements(
+    mut commands: Commands,
+    q_doors: Query<(Entity, &Transform, &Children, &DoorOriginalPosition, Option<&ExtraDoorPowerRequired>), With<Door>>,
+    q_powered_poles: Query<&PowersDoor, (With<DoorPole>, With<Powered>)>,
+    q_tween: Query<(), With<TimeSpan>>,
+) {
+    for (door_entity, door_transform, door_children, original_pos, extra_power_required) in &q_doors {
+        let powered_count = count_powered_poles_for_door(door_entity, &q_powered_poles);
+        let required_count = extra_power_required.map(|e| e.amount + 1).unwrap_or(1);
+        
+        let should_be_open = powered_count >= required_count;
+        let current_y = door_transform.translation.y;
+        let target_y = original_pos.0.y + DOOR_LIFT_HEIGHT;
+        let original_y = original_pos.0.y;
+        
+        let is_currently_open = current_y > original_y + 1.0;
+        
+        if should_be_open && !is_currently_open {
+            // Door should open
+            for child in door_children.iter() {
+                if q_tween.contains(child) {
+                    commands.entity(child).despawn();
+                }
+            }
+            
+            let remaining_distance = target_y - current_y;
+            let total_distance = DOOR_LIFT_HEIGHT;
+            let progress = remaining_distance / total_distance;
+            let duration = Duration::from_secs_f32(1.0 * progress);
+
+            commands
+                .entity(door_entity)
+                .animation()
+                .insert(tween(
+                    duration,
+                    EaseKind::Linear,
+                    TargetComponent::marker().with(translation(
+                        door_transform.translation,
+                        original_pos.0.with_y(target_y),
+                    )),
+                ))
+                .insert(DespawnOnFinish);
+                
+        } else if !should_be_open && is_currently_open {
+            // Door should close
+            for child in door_children.iter() {
+                if q_tween.contains(child) {
+                    commands.entity(child).despawn();
+                }
+            }
+
+            commands
+                .entity(door_entity)
+                .animation()
+                .insert(tween(
+                    Duration::from_secs(1),
+                    EaseKind::Linear,
+                    TargetComponent::marker().with(translation(
+                        door_transform.translation,
+                        original_pos.0,
+                    )),
+                ))
+                .insert(DespawnOnFinish);
+        }
+    }
+}
 
 fn on_power_added(
     trigger: Trigger<OnAdd, Powered>,
     mut commands: Commands,
-    q_pole: Query<(&RigidBodyColliders, &Powers), With<DoorPole>>,
-    q_doors: Query<(Entity, &Transform, &Children, &DoorOriginalPosition), With<Door>>,
+    q_pole: Query<&RigidBodyColliders, With<DoorPole>>,
     q_unlit_objects: Query<&MeshMaterial3d<UnlitMaterial>>,
     q_tween: Query<(), With<TimeSpan>>,
     q_children: Query<&Children, With<Collider>>,
 ) {
     let entity = trigger.target();
 
-    // Handle pole material animation
-    if let Ok((pole_colliders, pole_powers)) = q_pole.get(entity) {
-        // Material animations for pole
+    // Handle pole material animation only - door logic is handled by check_door_power_requirements
+    if let Ok(pole_colliders) = q_pole.get(entity) {
         for collider_entity in pole_colliders.iter() {
             if let Ok(collider_children) = q_children.get(collider_entity) {
                 for child in collider_children.iter() {
-                    // the tweens are children of the collider/material entities
                     if q_tween.contains(child) {
                         commands.entity(child).despawn();
                     }
@@ -169,63 +246,24 @@ fn on_power_added(
                     .insert(DespawnOnFinish);
             }
         }
-
-        // Door animations - move doors UP when powered
-        for powered_entity in pole_powers.iter() {
-            if let Ok((door_entity, door_transform, door_children, original_pos)) = q_doors.get(powered_entity) {
-                let current_y = door_transform.translation.y;
-                let target_y = original_pos.0.y + DOOR_LIFT_HEIGHT; // Lift 3 units from original position
-
-                // Clear existing tweens
-                for child in door_children.iter() {
-                    if q_tween.contains(child) {
-                        commands.entity(child).despawn();
-                    }
-                }
-                
-                // Only animate if door needs to move up
-                if current_y < target_y {
-                    let remaining_distance = target_y - current_y;
-                    let total_distance = DOOR_LIFT_HEIGHT; // Always 3 units up from original
-                    let progress = remaining_distance / total_distance;
-                    let duration = Duration::from_secs_f32(1.0 * progress);
-
-                    commands
-                        .entity(door_entity)
-                        .animation()
-                        .insert(tween(
-                            duration,
-                            EaseKind::Linear,
-                            TargetComponent::marker().with(translation(
-                                door_transform.translation,
-                                original_pos.0.with_y(target_y),
-                            )),
-                        ))
-                        .insert(DespawnOnFinish);
-                }
-            }
-        }
     }
 }
 
 fn on_power_removed(
     trigger: Trigger<OnRemove, Powered>,
     mut commands: Commands,
-    q_pole: Query<(&RigidBodyColliders, &Powers), With<DoorPole>>,
-    q_doors: Query<(Entity, &Transform, &Children, &DoorOriginalPosition), With<Door>>,
+    q_pole: Query<&RigidBodyColliders, With<DoorPole>>,
     q_unlit_objects: Query<&MeshMaterial3d<UnlitMaterial>>,
     q_tween: Query<(), With<TimeSpan>>,
     q_children: Query<&Children, With<Collider>>,
 ) {
     let entity = trigger.target();
 
-    // Handle pole material animation
-    if let Ok((pole_colliders, pole_powers)) = q_pole.get(entity) {
-        // Material animations for pole
+    // Handle pole material animation only - door logic is handled by check_door_power_requirements
+    if let Ok(pole_colliders) = q_pole.get(entity) {
         for collider_entity in pole_colliders.iter() {
             if let Ok(collider_children) = q_children.get(collider_entity) {
                 for child in collider_children.iter() {
-                    // the tweens are children of the collider/material entities
                     if q_tween.contains(child) {
                         commands.entity(child).despawn();
                     }
@@ -247,37 +285,6 @@ fn on_power_removed(
                         ),
                     ))
                     .insert(DespawnOnFinish);
-            }
-        }
-
-        // Door animations - move doors DOWN when power removed
-        for powered_entity in pole_powers.iter() {
-            if let Ok((door_entity, door_transform, door_children, original_pos)) = q_doors.get(powered_entity) {
-                let current_y = door_transform.translation.y;
-                let start_y = original_pos.0.y; // Return to original Y position
-
-                // Clear existing tweens
-                for child in door_children.iter() {
-                    if q_tween.contains(child) {
-                        commands.entity(child).despawn();
-                    }
-                }
-
-                // Only animate if door needs to move down
-                if current_y > start_y {
-                    commands
-                        .entity(door_entity)
-                        .animation()
-                        .insert(tween(
-                            Duration::from_secs(1),
-                            EaseKind::Linear,
-                            TargetComponent::marker().with(translation(
-                                door_transform.translation,
-                                original_pos.0,
-                            )),
-                        ))
-                        .insert(DespawnOnFinish);
-                }
             }
         }
     }

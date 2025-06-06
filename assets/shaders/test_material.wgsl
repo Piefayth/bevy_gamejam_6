@@ -33,6 +33,12 @@ fn fragment(
     var pbr_input = pbr_input_from_standard_material(in, is_front);
     let material_color = alpha_discard(pbr_input.material, pbr_input.material.base_color);
    
+    // Calculate border using UV coordinates (hardcoded width)
+    let uv = in.uv;
+    let border_width = 0.05; // 5% border width
+    let dist_from_edge = min(min(uv.x, 1.0 - uv.x), min(uv.y, 1.0 - uv.y));
+    let is_border = dist_from_edge < border_width;
+    
     // Rotate UV coordinates based on stripe angle
     let rotated_uv = rotate_uv(in.uv, params.stripe_angle);
    
@@ -47,9 +53,15 @@ fn fragment(
     let stripe_mask = step(params.stripe_thickness, stripe_wave);
    
     var out: FragmentOutput;
-    // Use the material color's alpha (which handles AlphaMode::Mask) and apply stripe mask
-    out.color = vec4<f32>(params.stripe_color.rgb, stripe_mask);
+    
+    // Choose color based on border vs stripe pattern
+    if (is_border) {
+        // Border area - use stripe color with full opacity
+        out.color = vec4<f32>(params.stripe_color.rgb, 1.0);
+    } else {
+        // Interior area - use stripe pattern
+        out.color = vec4<f32>(params.stripe_color.rgb, stripe_mask);
+    }
    
-    //out.color = main_pass_post_lighting_processing(pbr_input, out.color);
     return out;
 }
