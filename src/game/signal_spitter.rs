@@ -44,17 +44,15 @@ pub fn signal_spitter_plugin(app: &mut App) {
         .add_systems(FixedUpdate, handle_continuous_signal_emission.run_if(in_state(GameState::Playing)));
 }
 
-fn sink_when_not_held(
+pub fn sink_when_not_held(
     trigger: Trigger<OnRemove, Held>,
-    q_rigid_body_colliders: Query<&RigidBodyColliders>,
     mut commands: Commands,
 ) {
     commands.entity(trigger.target()).insert((RigidBody::Dynamic, LockedAxes::ALL_LOCKED.unlock_translation_y()));
 }
 
-fn dont_sink_when_held(
+pub fn dont_sink_when_held(
     trigger: Trigger<OnAdd, Held>,
-    q_rigid_body_colliders: Query<&RigidBodyColliders>,
     mut commands: Commands,
 ) {
     commands.entity(trigger.target()).insert((LockedAxes::ALL_LOCKED));

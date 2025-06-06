@@ -15,14 +15,12 @@ use bevy_tween::{
 };
 
 use crate::{
-    GameState,
     asset_management::{
         asset_loading::GameAssets,
         asset_tag_components::{
             SignalSpitter, StandingCubeSpitter, WeightedCube, WeightedCubeColors,
         },
-    },
-    rendering::unlit_material::UnlitMaterial,
+    }, game::signal_spitter::{dont_sink_when_held, sink_when_not_held}, rendering::unlit_material::UnlitMaterial, GameState
 };
 
 use super::{
@@ -88,7 +86,9 @@ fn register_standing_cube_spitter_signals(
             .insert(OwnedObjects::default())
             .observe(cube_spitter_direct_signal)
             .observe(cube_spitter_receive_power)
-            .observe(cube_spitter_lose_power);
+            .observe(cube_spitter_lose_power)
+            .observe(sink_when_not_held)
+            .observe(dont_sink_when_held);
     }
 }
 

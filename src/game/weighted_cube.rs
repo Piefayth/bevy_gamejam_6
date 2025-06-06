@@ -60,7 +60,6 @@ fn cube_discharge_detection(
         (
             With<WeightedCube>,
             With<Powered>,
-            Without<PoweredBy>,
             Without<Held>,
         ),
     >,
@@ -143,12 +142,18 @@ fn update_cube_discharge_timers(
     mut commands: Commands,
     time: Res<Time>,
     mut q_discharging_cubes: Query<(Entity, &mut CubeDischarge), With<WeightedCube>>,
+    q_powered_by: Query<(), With<PoweredBy>>, // Add this query
 ) {
     for (cube_entity, mut discharge) in q_discharging_cubes.iter_mut() {
         discharge.timer.tick(time.delta());
 
         if discharge.timer.finished() {
             commands.entity(cube_entity).remove::<CubeDischarge>();
+            
+            // If this cube has PoweredBy, it should be re-powered immediately
+            if q_powered_by.contains(cube_entity) {
+                commands.entity(cube_entity).insert(Powered);
+            }
         }
     }
 }
