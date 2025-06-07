@@ -4,6 +4,8 @@ use avian3d::prelude::{
 };
 #[cfg(feature = "dev")]
 use bevy::text::FontSmoothing;
+#[cfg(feature = "dev")]
+use bevy::color::palettes::css::GREEN;
 use bevy::{
     color::palettes::{css::MAGENTA, tailwind::CYAN_400},
     core_pipeline::{
