@@ -4,7 +4,7 @@ use avian3d::prelude::{
 };
 use bevy::{
     color::palettes::{
-        css::{GREEN, MAGENTA},
+        css::{MAGENTA},
         tailwind::CYAN_400,
     },
     core_pipeline::{
@@ -12,8 +12,9 @@ use bevy::{
         fxaa::Fxaa,
     },
     prelude::*,
-    text::FontSmoothing,
 };
+#[cfg(feature = "dev")]
+use bevy::text::FontSmoothing;
 #[cfg(feature = "dev")]
 use bevy_dev_tools::fps_overlay::{FpsOverlayConfig, FpsOverlayPlugin};
 #[cfg(feature = "dev")]

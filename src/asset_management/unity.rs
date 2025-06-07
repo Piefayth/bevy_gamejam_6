@@ -1,4 +1,4 @@
-use std::net::Ipv4Addr;
+
 
 use bevy::{ecs::reflect::ReflectCommandExt, prelude::*, reflect::serde::ReflectDeserializer};
 
@@ -6,18 +6,35 @@ use bevy::{ecs::reflect::ReflectCommandExt, prelude::*, reflect::serde::ReflectD
 #[cfg(feature = "dev")]
 use bevy::remote::{http::RemoteHttpPlugin, RemotePlugin};
 
+#[cfg(not(target_arch = "wasm32"))]
+#[cfg(feature = "dev")]
+use std::net::Ipv4Addr;
+
 use serde::de::DeserializeSeed;
 use serde_json::Value;
 
 pub struct UnityPlugin {
+    #[cfg(not(target_arch = "wasm32"))]
+    #[cfg(feature = "dev")]
     brp: bool,
 }
 
 impl Default for UnityPlugin {
     fn default() -> Self {
+        Self {
+            
+        }
+    }
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+#[cfg(feature = "dev")]
+impl Default for UnityPlugin {
+    fn default() -> Self {
         Self { brp: true }
     }
 }
+
 
 impl Plugin for UnityPlugin {
     fn build(&self, app: &mut App) {
