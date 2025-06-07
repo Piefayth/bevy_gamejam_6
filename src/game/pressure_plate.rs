@@ -311,7 +311,7 @@ fn on_charge_pad_entity_entered(
 fn on_charge_pad_entity_left(
     trigger: Trigger<ChargePadEntityLeft>,
     mut commands: Commands,
-    mut q_charge_pad: Query<&mut ChargePadDetector, With<ChargePad>>,
+    mut q_charge_pad: Query<(&mut ChargePadDetector, Has<Powered>), With<ChargePad>>,
     q_powered_by: Query<&PoweredBy>,
     q_cubes: Query<&WeightedCube>,
 ) {
@@ -319,7 +319,7 @@ fn on_charge_pad_entity_left(
     let charge_pad_entity = event.charge_pad_entity;
     let leaving_entity = event.entity;
 
-    if let Ok(mut detector) = q_charge_pad.get_mut(charge_pad_entity) {
+    if let Ok((mut detector, is_powered)) = q_charge_pad.get_mut(charge_pad_entity) {
         // If this is the entity we're currently charging, stop charging it
         if detector.charged_entity == Some(leaving_entity) {
             detector.charged_entity = None;
@@ -342,12 +342,15 @@ fn on_charge_pad_entity_left(
             // Check if there are other entities we can start charging
             // Priority: charge the first available entity in the overlapping set
             if let Some(&next_entity) = detector.overlapping_entities.iter().next() {
-                if next_entity != leaving_entity {
+                if next_entity != leaving_entity{
                     detector.charged_entity = Some(next_entity);
-                    commands
-                        .entity(next_entity)
-                        .insert(Powered)
-                        .insert(PoweredBy(charge_pad_entity));
+                    if is_powered {
+                        commands
+                            .entity(next_entity)
+                            .insert(Powered)
+                            .insert(PoweredBy(charge_pad_entity));
+                    }
+
                 }
             }
         }

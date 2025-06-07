@@ -11,8 +11,7 @@ use bevy_tween::{
 };
 
 use crate::{
-    asset_management::asset_tag_components::{Door, DoorPole, ExtraDoorPowerRequired},
-    rendering::{section_color_prepass::DrawSection, unlit_material::UnlitMaterial},
+    asset_management::asset_tag_components::{ChargePad, Door, DoorPole, ExtraDoorPowerRequired}, game::pressure_plate::PoweredBy, rendering::{section_color_prepass::DrawSection, unlit_material::UnlitMaterial}
 };
 
 use super::{
@@ -293,15 +292,24 @@ fn on_power_removed(
 fn update_powered_timers(
     mut commands: Commands,
     mut q_powered: Query<(Entity, &mut PoweredTimer)>,
+    q_powered_by: Query<&PoweredBy>,
+    q_charge_pad_powered: Query<&Powered, (With<ChargePad>, Without<PoweredTimer>)>,
     time: Res<Time>,
 ) {
     for (entity, mut timer) in q_powered.iter_mut() {
         timer.0.tick(time.delta());
         if timer.0.finished() {
-            commands
-                .entity(entity)
-                .remove::<Powered>()
-                .remove::<PoweredTimer>();
+            // Check if still powered by a ChargePad
+            let should_stay_powered = if let Ok(powered_by) = q_powered_by.get(entity) {
+                q_charge_pad_powered.contains(powered_by.0)
+            } else {
+                false
+            };
+            
+            if !should_stay_powered {
+                commands.entity(entity).try_remove::<Powered>();
+            }
+            commands.entity(entity).try_remove::<PoweredTimer>();
         }
     }
 }

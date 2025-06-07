@@ -4,6 +4,7 @@
     forward_io::{VertexOutput, FragmentOutput},
 }
 
+#ifndef DEPTH_PREPASS
 struct UnlitParams {
     intensity: f32,
     alpha: f32,
@@ -20,6 +21,7 @@ fn is_grey(color: vec3<f32>, threshold: f32) -> bool {
     let difference = max_component - min_component;
     return difference <= threshold;
 }
+#endif
 
 @fragment
 fn fragment(
@@ -28,19 +30,21 @@ fn fragment(
 ) -> FragmentOutput {
     var pbr_input = pbr_input_from_standard_material(in, is_front);
     let material_color = alpha_discard(pbr_input.material, pbr_input.material.base_color);
-   
-    // Blend between material color and blend_color using blend_factor
-    let blended_color = mix(material_color, params.blend_color, params.blend_factor);
-   
-    // Check if the blended color is grey within the threshold
-    let is_grey_pixel = is_grey(blended_color.rgb, params.grey_threshold);
-   
-    // Apply intensity only to non-grey pixels
-    let final_intensity = select(params.intensity, 1.0, is_grey_pixel);
-   
+
     var out: FragmentOutput;
+    
+#ifdef DEPTH_PREPASS
+    // When depth prepass is active, just use the base material color
+    out.color = vec4<f32>(material_color.rgb, material_color.a);
+#else
+    // Your custom logic when depth prepass is not active
+    let blended_color = mix(material_color, params.blend_color, params.blend_factor);
+    let is_grey_pixel = is_grey(blended_color.rgb, params.grey_threshold);
+    let final_intensity = select(params.intensity, 1.0, is_grey_pixel);
+    
     out.color = vec4<f32>(blended_color.rgb * final_intensity, material_color.a * params.alpha);
-   
+#endif
+    
     out.color = main_pass_post_lighting_processing(pbr_input, out.color);
     return out;
 }

@@ -5,6 +5,7 @@ use bevy::{
 };
 
 #[cfg(not(target_arch = "wasm32"))]
+#[cfg(feature = "dev")]
 use bevy::remote::{http::RemoteHttpPlugin, RemotePlugin};
 
 use serde::{de::DeserializeSeed};
@@ -23,6 +24,7 @@ impl Default for UnityPlugin {
 impl Plugin for UnityPlugin {
     fn build(&self, app: &mut App) {
         #[cfg(not(target_arch = "wasm32"))]
+        #[cfg(feature = "dev")]
         if self.brp {
             app.add_plugins((
                 RemotePlugin::default(),

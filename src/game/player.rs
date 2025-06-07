@@ -239,7 +239,7 @@ fn picked_up_item(
             excluded_entities.push(thing);
         }
 
-        commands.entity(picked_up_body).insert((RigidBodyDisabled,));
+        commands.entity(picked_up_body).insert(RigidBodyDisabled);
 
         if let Ok(mut body_transform) = transforms.get_mut(picked_up_body) {
             body_transform.rotation = Quat::IDENTITY;

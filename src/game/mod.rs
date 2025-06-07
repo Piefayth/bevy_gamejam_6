@@ -18,6 +18,8 @@ use signals::signals_plugin;
 use standing_cube_spitter::standing_cube_spitter_plugin;
 use weighted_cube::cube_plugin;
 
+use crate::game::discharge_gate::discharge_gate_plugin;
+
 pub mod cube_spitter;
 pub mod dissolve_gate;
 pub mod door;
@@ -31,6 +33,7 @@ pub mod signals;
 pub mod standing_cube_spitter;
 pub mod weighted_cube;
 pub mod button;
+pub mod discharge_gate;
 
 pub fn gameplay_plugins(app: &mut App) {
     app.add_plugins((
@@ -49,6 +52,7 @@ pub fn gameplay_plugins(app: &mut App) {
         cube_plugin,
         standing_cube_spitter_plugin,
         button_plugin,
+        discharge_gate_plugin,
     ))
     .insert_resource(Gravity(Vec3::NEG_Y * 19.6));
 
@@ -65,7 +69,6 @@ pub enum GameLayer {
     Player,
     Signal,
     Device,
-    Dissolve,
     Ignore,
 }
 

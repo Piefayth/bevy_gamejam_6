@@ -306,7 +306,7 @@ fn register_cube_spitter_signals(
                     CollisionLayers::new(
                         GameLayer::Device, 
                         [
-                            GameLayer::Dissolve,
+                            GameLayer::Device,
                             GameLayer::Signal, 
                             GameLayer::Player,
                             GameLayer::Default,

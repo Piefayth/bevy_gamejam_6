@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use avian3d::prelude::{Collider, CollisionEventsEnabled, CollisionLayers, LockedAxes, RigidBody, RigidBodyColliders};
+use avian3d::prelude::{Collider, CollisionEventsEnabled, CollisionLayers, LockedAxes, RigidBody, RigidBodyColliders, SleepingDisabled};
 use bevy::prelude::*;
 use bevy_tween::{
     bevy_time_runner::TimeSpan,
@@ -136,7 +136,7 @@ fn register_signal_spitter_signals(
                         CollisionLayers::new(
                             GameLayer::Device,
                             [
-                                GameLayer::Dissolve,
+                                GameLayer::Device,
                                 GameLayer::Signal,
                                 GameLayer::Player,
                                 GameLayer::Default,
@@ -150,7 +150,8 @@ fn register_signal_spitter_signals(
         }
         commands
             .entity(spitter_entity)
-            .insert(ContinuousEmission::default()) // Add continuous emission component
+            .insert((ContinuousEmission::default(), 
+                        SleepingDisabled)) // Add continuous emission component
             .observe(signal_spitter_direct_signal)
             .observe(signal_spitter_receive_power)
             .observe(signal_spitter_lose_power)

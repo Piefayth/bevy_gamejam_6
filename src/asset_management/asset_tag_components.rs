@@ -80,6 +80,12 @@ pub struct DissolveGate {
 
 #[derive(Component, Reflect, Debug)]
 #[reflect(Component)]
+pub struct DischargeGate {
+    pub unused: bool,
+}
+
+#[derive(Component, Reflect, Debug)]
+#[reflect(Component)]
 pub struct Door {
     pub unused: bool,
 }
@@ -123,6 +129,13 @@ pub struct PermanentlyPowered {
     pub unused: bool,
 }
 
+#[derive(Component, Reflect)]
+#[reflect(Component)]
+pub struct FancyMesh {
+    pub unused: bool,
+}
+
+
 pub fn asset_tag_components_plugin(app: &mut App) {
     app.register_type::<RoomWall>()
         .register_type::<BigRedButton>()
@@ -135,6 +148,7 @@ pub fn asset_tag_components_plugin(app: &mut App) {
         .register_type::<ExitDoorShutter>()
         .register_type::<PressurePlate>()
         .register_type::<DissolveGate>()
+        .register_type::<DischargeGate>()
         .register_type::<Dissolveable>()
         .register_type::<ChargePad>()
         .register_type::<Door>()
@@ -144,5 +158,6 @@ pub fn asset_tag_components_plugin(app: &mut App) {
         .register_type::<PowerButton>()
         .register_type::<PermanentlyPowered>()
         .register_type::<ExtraDoorPowerRequired>()
+        .register_type::<FancyMesh>()
         ;
 }

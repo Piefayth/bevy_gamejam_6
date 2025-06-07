@@ -1,8 +1,7 @@
 use std::time::Duration;
 
 use avian3d::prelude::{
-    ColliderConstructor, ColliderOf, CollisionEventsEnabled, CollisionLayers, RigidBody,
-    RigidBodyColliders, Sensor, SpatialQuery, SpatialQueryFilter,
+    ColliderConstructor, ColliderOf, CollisionEventsEnabled, CollisionLayers, LockedAxes, RigidBody, RigidBodyColliders, Sensor, SpatialQuery, SpatialQueryFilter
 };
 use bevy::prelude::*;
 use bevy_enhanced_input::events::Completed;
@@ -273,7 +272,8 @@ fn register_signal_spitter_interaction(
                     .insert((Interactable::new(Interactions::PickUp),));
 
                 commands.entity(new_spitter).insert((
-                    RigidBody::Kinematic,
+                    RigidBody::Dynamic,
+                    LockedAxes::ALL_LOCKED.unlock_translation_y(),
                     Dissolveable {
                         respawn_transform: Some(*transform),
                     },
@@ -287,7 +287,7 @@ fn register_standing_cube_spitter_interaction(
     mut commands: Commands,
     q_new_spitters: Query<
         (Entity, &Children, &Transform, Has<Immobile>),
-        (Added<StandingCubeSpitter>, Without<Immobile>),
+        (Added<StandingCubeSpitter>)
     >,
     q_mesh: Query<Entity, With<Mesh3d>>,
 ) {
@@ -307,7 +307,8 @@ fn register_standing_cube_spitter_interaction(
                     .insert((Interactable::new(Interactions::PickUp),));
 
                 commands.entity(new_spitter).insert((
-                    RigidBody::Kinematic,
+                    RigidBody::Dynamic,
+                    LockedAxes::ALL_LOCKED.unlock_translation_y(),
                     Dissolveable {
                         respawn_transform: Some(*transform),
                     },

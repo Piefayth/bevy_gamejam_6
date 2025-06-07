@@ -1,7 +1,7 @@
 use bevy::{
-    pbr::{ExtendedMaterial, MaterialExtension},
+    pbr::{ExtendedMaterial, MaterialExtension, MaterialExtensionKey, MeshPipelineKey},
     prelude::*,
-    render::render_resource::{AsBindGroup, ShaderRef, ShaderType},
+    render::{mesh::MeshVertexBufferLayoutRef, render_resource::{AsBindGroup, RenderPipelineDescriptor, ShaderRef, ShaderType, SpecializedMeshPipelineError}},
 };
 use bevy_tween::{asset_tween_system, prelude::Interpolator, tween::TargetAsset, BevyTweenRegisterSystems};
 use crate::game::signals::MaterialIntensityInterpolator;

@@ -3,7 +3,7 @@ use std::time::Duration;
 use avian3d::{
     parry::na::Owned,
     prelude::{
-        Collider, CollisionEventsEnabled, CollisionLayers, ExternalImpulse, LinearVelocity, RigidBody, RigidBodyColliders, RotationInterpolation, TransformInterpolation
+        Collider, CollisionEventsEnabled, CollisionLayers, ExternalImpulse, LinearVelocity, RigidBody, RigidBodyColliders, RotationInterpolation, SleepingDisabled, TransformInterpolation
     },
 };
 use bevy::prelude::*;
@@ -18,7 +18,7 @@ use crate::{
     asset_management::{
         asset_loading::GameAssets,
         asset_tag_components::{
-            SignalSpitter, StandingCubeSpitter, WeightedCube, WeightedCubeColors,
+            Immobile, SignalSpitter, StandingCubeSpitter, WeightedCube, WeightedCubeColors
         },
     }, game::signal_spitter::{dont_sink_when_held, sink_when_not_held}, rendering::unlit_material::UnlitMaterial, GameState
 };
@@ -47,7 +47,7 @@ pub fn standing_cube_spitter_plugin(app: &mut App) {
 fn register_standing_cube_spitter_signals(
     mut commands: Commands,
     q_new_signal_spitter: Query<
-        (Entity, &RigidBodyColliders),
+        (Entity, &RigidBodyColliders, Has<Immobile>),
         (
             Added<RigidBodyColliders>,
             With<StandingCubeSpitter>,
@@ -57,7 +57,7 @@ fn register_standing_cube_spitter_signals(
     mut unlit_materials: ResMut<Assets<UnlitMaterial>>,
     q_unlit_objects: Query<&MeshMaterial3d<UnlitMaterial>>,
 ) {
-    for (spitter_entity, spitter_children) in &q_new_signal_spitter {
+    for (spitter_entity, spitter_children, is_immobile) in &q_new_signal_spitter {
         for spitter_child in spitter_children.iter() {
             if let Ok(material_handle) = q_unlit_objects.get(spitter_child) {
                 let old_material = unlit_materials.get(material_handle).unwrap().clone();
@@ -69,7 +69,7 @@ fn register_standing_cube_spitter_signals(
                         CollisionLayers::new(
                             GameLayer::Device,
                             [
-                                GameLayer::Dissolve,
+                                GameLayer::Device,
                                 GameLayer::Signal,
                                 GameLayer::Player,
                                 GameLayer::Default,
@@ -83,12 +83,17 @@ fn register_standing_cube_spitter_signals(
         }
         commands
             .entity(spitter_entity)
-            .insert(OwnedObjects::default())
+            .insert((OwnedObjects::default(), 
+                        SleepingDisabled))
             .observe(cube_spitter_direct_signal)
             .observe(cube_spitter_receive_power)
-            .observe(cube_spitter_lose_power)
-            .observe(sink_when_not_held)
-            .observe(dont_sink_when_held);
+            .observe(cube_spitter_lose_power);
+
+        if !is_immobile {
+            commands.entity(spitter_entity)
+                 .observe(sink_when_not_held)
+                .observe(dont_sink_when_held);
+        }
     }
 }
 
@@ -113,13 +118,13 @@ fn check_and_replace_cubes(
                     SceneRoot(game_assets.weighted_cube_cyan.clone()),
                     Transform::from_translation(
                         spitter_transform.translation()
-                            + Vec3::Y * 5.
+                            + Vec3::Y * 10.
                             + spitter_transform.forward() * -10.,
                     ),
                     RigidBody::Dynamic,
                     TransformInterpolation,
                     RotationInterpolation,
-                    LinearVelocity(spitter_transform.forward() * -50.),
+                    LinearVelocity(spitter_transform.forward() * -50. + Vec3::Y * 30.),
                     WeightedCube {
                         color: WeightedCubeColors::Cyan,
                     },
@@ -198,7 +203,7 @@ fn cube_spitter_direct_signal(
                 RigidBody::Dynamic,
                 TransformInterpolation,
                 RotationInterpolation,
-                LinearVelocity(spitter_transform.forward() * -50.),
+                LinearVelocity(spitter_transform.forward() * -50. + Vec3::Y * 30.),
                 WeightedCube {
                     color: WeightedCubeColors::Cyan,
                 },
@@ -265,13 +270,13 @@ fn cube_spitter_receive_power(
                     SceneRoot(game_assets.weighted_cube_cyan.clone()),
                     Transform::from_translation(
                         spitter_transform.translation()
-                            + Vec3::Y * 5.
+                            + Vec3::Y * 10.
                             + spitter_transform.forward() * -10.,
                     ),
                     RigidBody::Dynamic,
                     TransformInterpolation,
                     RotationInterpolation,
-                    LinearVelocity(spitter_transform.forward() * -50.),
+                    LinearVelocity(spitter_transform.forward() * -50. + Vec3::Y * 30.),
                     WeightedCube {
                         color: WeightedCubeColors::Cyan,
                     },

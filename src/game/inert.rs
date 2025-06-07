@@ -45,7 +45,7 @@ fn register_inert(
                             MeshMaterial3d(unlit_materials.add(new_material)),
                             CollisionLayers::new(
                                 GameLayer::Device,
-                                [GameLayer::Player, GameLayer::Signal],
+                                [GameLayer::Player, GameLayer::Signal, GameLayer::Device],
                             ),
                             CollisionEventsEnabled,
                         ))

@@ -1,20 +1,19 @@
-use avian3d::prelude::{ColliderConstructor, RigidBody};
-use bevy::{
-    asset::LoadState,
-    color::palettes::css::WHITE,
-    pbr::ExtendedMaterial,
-    prelude::*,
-};
+use avian3d::prelude::{Collider, ColliderConstructor, RigidBody};
+use bevy::{asset::LoadState, color::palettes::css::WHITE, pbr::ExtendedMaterial, prelude::*};
 
 use crate::{
-    GameState,
+    asset_management::asset_tag_components::{FancyMesh, WeightedCube},
     rendering::{
-        section_color_prepass::{ATTRIBUTE_SECTION_COLOR, DrawSection},
+        section_color_prepass::{DrawSection, ATTRIBUTE_SECTION_COLOR},
         unlit_material::{UnlitMaterial, UnlitMaterialExtension, UnlitParams},
     },
+    GameState,
 };
 
-use super::asset_tag_components::{CubeSpitter, Door, DoorPole, Inert, NeedsRigidBody, PowerButton, SignalSpitter, StandingCubeSpitter};
+use super::asset_tag_components::{
+    CubeSpitter, Door, DoorPole, Inert, NeedsRigidBody, PowerButton, SignalSpitter,
+    StandingCubeSpitter,
+};
 
 pub(crate) fn assets_plugin(app: &mut App) {
     app.init_state::<AssetLoaderState>()
@@ -23,7 +22,9 @@ pub(crate) fn assets_plugin(app: &mut App) {
             Update,
             (
                 check_asset_loading.run_if(in_state(AssetLoaderState::Loading)),
+                (assign_colliders_to_meshes,
                 add_rigidbodies_to_colliders,
+                ).chain()
             ),
         )
         .add_systems(OnEnter(AssetLoaderState::Loading), on_start_loading)
@@ -84,7 +85,7 @@ fn on_start_loading(
     game_assets.cyan_signal_material = unlit_materials.add(UnlitMaterial {
         base: StandardMaterial {
             base_color: LinearRgba::new(4. / 255., 149. / 255., 249. / 255., 1.0).into(),
-            alpha_mode: AlphaMode::Blend,
+            alpha_mode: AlphaMode::Mask(0.5),
             ..default()
         },
         extension: UnlitMaterialExtension {
@@ -219,7 +220,9 @@ fn postprocess_assets(
                     scene
                         .world
                         .entity_mut(*entity)
-                        .insert(ColliderConstructor::TrimeshFromMesh);
+                        .insert(NeedsRigidBody {
+                    kind: RigidBody::Static,
+                });
                 }
             }
 
@@ -233,41 +236,150 @@ fn postprocess_assets(
         }
     }
 
-    // set up static environments
-    let environments_to_process = vec![game_assets.main_menu_environment.clone()];
+    // // set up static environments
+    // let environments_to_process = vec![game_assets.main_menu_environment.clone()];
 
-    for scene_handle in environments_to_process {
-        // Find all entities with colliders and assign NeedsRigidBody with RigidBody::Static
-        if let Some(scene) = scenes.get_mut(&scene_handle) {
-            let mut entities_with_colliders = Vec::new();
-            for entity_ref in scene.world.iter_entities() {
-                let entity = entity_ref.id();
-                if scene.world.get::<ColliderConstructor>(entity).is_some() {
-                    entities_with_colliders.push(entity);
-                }
-            }
+    // for scene_handle in environments_to_process {
+    //     // Find all entities with colliders and assign NeedsRigidBody with RigidBody::Static
+    //     if let Some(scene) = scenes.get_mut(&scene_handle) {
+    //         let mut entities_with_colliders = Vec::new();
+    //         for entity_ref in scene.world.iter_entities() {
+    //             let entity = entity_ref.id();
+    //             if scene.world.get::<ColliderConstructor>(entity).is_some() {
+    //                 entities_with_colliders.push(entity);
+    //             }
+    //         }
 
-            for entity in entities_with_colliders {
-                scene.world.entity_mut(entity).insert(NeedsRigidBody {
-                    kind: RigidBody::Static,
-                });
-            }
-        }
-    }
+    //         for entity in entities_with_colliders {
+    //             scene.world.entity_mut(entity).insert(NeedsRigidBody {
+    //                 kind: RigidBody::Static,
+    //             });
+    //         }
+    //     }
+    // }
 
     commands.spawn(SceneRoot(game_assets.main_menu_environment.clone()));
     //commands.set_state(GameState::MainMenu);
     commands.set_state(GameState::Playing);
 }
 
+
+fn assign_colliders_to_meshes(
+    mut commands: Commands,
+    // Query for mesh entities that don't have colliders yet
+    mesh_entities: Query<
+        (Entity, &Mesh3d, Option<&ChildOf>),
+        (Without<Collider>, Added<Mesh3d>)
+    >,
+    // Query for entities that should use trimesh colliders
+    trimesh_entities: Query<(), Or<(With<Door>, With<FancyMesh>)>>,
+    // Query for entities with WeightedCube component
+    weighted_cube_entities: Query<(), With<WeightedCube>>,
+    // Query for parent relationships
+    parent_query: Query<&ChildOf>,
+    meshes: Res<Assets<Mesh>>,
+) {
+    for (entity, mesh_handle, parent) in &mesh_entities {
+        if let Some(mesh) = meshes.get(&mesh_handle.0) {
+            // Check if entity itself has components that should use TrimeshFromMesh
+            let entity_needs_trimesh = trimesh_entities.contains(entity);
+           
+            // Check if parent has components that should use TrimeshFromMesh
+            let parent_needs_trimesh = if let Some(parent) = parent {
+                trimesh_entities.contains(parent.parent())
+            } else {
+                false
+            };
+
+            // ok we dont need this but im too scared to break anything sooo
+            let has_weighted_cube_parent = check_for_weighted_cube_in_hierarchy(
+                entity, 
+                &weighted_cube_entities, 
+                &parent_query
+            );
+
+            let collider = if entity_needs_trimesh || parent_needs_trimesh {
+                Collider::trimesh_from_mesh(mesh)
+            } else {
+                Collider::convex_hull_from_mesh(mesh)
+            };
+
+            if let Some(collider) = collider {
+                let mut entity_commands = commands.entity(entity);
+                entity_commands.insert(collider);
+
+                // Only add RigidBody if no WeightedCube parent exists
+                if !has_weighted_cube_parent {
+                    entity_commands.insert(NeedsRigidBody {
+                        kind: RigidBody::Static,
+                    });
+                }
+            } else {
+                warn!("Failed to create collider for mesh on entity {:?}", entity);
+            }
+        }
+    }
+}
+
+// ok we dont need this but im too scared to break anything sooo
+fn check_for_weighted_cube_in_hierarchy(
+    mut current_entity: Entity,
+    weighted_cube_entities: &Query<(), With<WeightedCube>>,
+    parent_query: &Query<&ChildOf>,
+) -> bool {
+    // First check the entity itself
+    if weighted_cube_entities.contains(current_entity) {
+        return true;
+    }
+
+    // Then traverse up the parent hierarchy
+    while let Ok(child_of) = parent_query.get(current_entity) {
+        let parent_entity = child_of.parent();
+        if weighted_cube_entities.contains(parent_entity) {
+            return true;
+        }
+        current_entity = parent_entity;
+    }
+
+    false
+}
 fn add_rigidbodies_to_colliders(
     mut commands: Commands,
     q_colliders_without_rigidbody: Query<(Entity, &NeedsRigidBody, &ChildOf)>,
-    q_exclusions: Query<(), Or<(With<SignalSpitter>, With<CubeSpitter>, With<DoorPole>, With<Door>, With<Inert>, With<StandingCubeSpitter>, With<PowerButton>)>>, // we will add these RBs later during registration
+    q_exclusions: Query<
+        (),
+        Or<(
+            With<SignalSpitter>,
+            With<CubeSpitter>,
+            With<DoorPole>,
+            With<Door>,
+            With<Inert>,
+            With<StandingCubeSpitter>,
+            With<PowerButton>,
+            With<WeightedCube>,
+        )>,
+    >, // we will add these RBs later during registration
+    parent_query: Query<&ChildOf>,
 ) {
     for (entity, nrb, child_of) in &q_colliders_without_rigidbody {
-        if !q_exclusions.contains(child_of.0) {
-            // make sure the type of the PARENT is not in the exclusions
+        // Check if any parent in the hierarchy has exclusion components
+        let mut has_excluded_parent = false;
+        let mut current_parent = child_of.parent();
+        
+        loop {
+            if q_exclusions.contains(current_parent) {
+                has_excluded_parent = true;
+                break;
+            }
+            
+            if let Ok(parent_child_of) = parent_query.get(current_parent) {
+                current_parent = parent_child_of.parent();
+            } else {
+                break; // No more parents
+            }
+        }
+        
+        if !has_excluded_parent {
             commands
                 .entity(entity)
                 .insert(nrb.kind)
