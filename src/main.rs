@@ -3,9 +3,9 @@ use avian3d::prelude::{
     Collider, CollisionLayers, PhysicsGizmos, RigidBody, RigidBodyDisabled, RotationInterpolation,
 };
 #[cfg(feature = "dev")]
-use bevy::text::FontSmoothing;
-#[cfg(feature = "dev")]
 use bevy::color::palettes::css::GREEN;
+#[cfg(feature = "dev")]
+use bevy::text::FontSmoothing;
 use bevy::{
     color::palettes::{css::MAGENTA, tailwind::CYAN_400},
     core_pipeline::{
