@@ -140,3 +140,9 @@ inherits = "dev"
 
 [profile.android-dev]
 inherits = "dev"
+
+[profile.ci]
+inherits = "dev"
+opt-level = 0
+debug = "line-tables-only"
+codegen-units = 4
