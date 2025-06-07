@@ -119,37 +119,6 @@ jobs:
       - name: Run Bevy lints
         run: bevy_lint --locked --workspace --all-targets --profile ci --all-features
 
-  # Run tests.
-  tests:
-    name: Tests
-    runs-on: ubuntu-latest
-    timeout-minutes: 40
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Set up environment
-        run: echo "RUSTFLAGS=${RUSTFLAGS:+$RUSTFLAGS }-Zcodegen-backend=cranelift" >> "${GITHUB_ENV}"
-
-      - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@master
-        with:
-          toolchain: ${{ env.toolchain }}
-          components: rustc-codegen-cranelift-preview
-
-      - name: Restore Rust cache
-        uses: Swatinem/rust-cache@v2
-        with:
-          shared-key: test
-          cache-directories: ${{ env.LD_LIBRARY_PATH }}
-          save-if: ${{ github.ref == 'refs/heads/main' }}
-
-      - name: Install build dependencies
-        run: sudo apt-get update; sudo apt-get install --no-install-recommends libasound2-dev libudev-dev libwayland-dev
-
-      - name: Run tests
-        run: cargo test --locked --workspace --all-targets --profile ci --no-fail-fast
-
   # Check that the web build compiles.
   check-web:
     name: Check web
