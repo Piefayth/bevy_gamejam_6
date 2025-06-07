@@ -2,19 +2,16 @@ use asset_management::asset_plugins;
 use avian3d::prelude::{
     Collider, CollisionLayers, PhysicsGizmos, RigidBody, RigidBodyDisabled, RotationInterpolation,
 };
+#[cfg(feature = "dev")]
+use bevy::text::FontSmoothing;
 use bevy::{
-    color::palettes::{
-        css::{MAGENTA},
-        tailwind::CYAN_400,
-    },
+    color::palettes::{css::MAGENTA, tailwind::CYAN_400},
     core_pipeline::{
         bloom::{Bloom, BloomPrefilter},
         fxaa::Fxaa,
     },
     prelude::*,
 };
-#[cfg(feature = "dev")]
-use bevy::text::FontSmoothing;
 #[cfg(feature = "dev")]
 use bevy_dev_tools::fps_overlay::{FpsOverlayConfig, FpsOverlayPlugin};
 #[cfg(feature = "dev")]

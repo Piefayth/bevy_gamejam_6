@@ -1,5 +1,3 @@
-
-
 use bevy::{ecs::reflect::ReflectCommandExt, prelude::*, reflect::serde::ReflectDeserializer};
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -21,9 +19,7 @@ pub struct UnityPlugin {
 
 impl Default for UnityPlugin {
     fn default() -> Self {
-        Self {
-            
-        }
+        Self {}
     }
 }
 
@@ -34,7 +30,6 @@ impl Default for UnityPlugin {
         Self { brp: true }
     }
 }
-
 
 impl Plugin for UnityPlugin {
     fn build(&self, app: &mut App) {
