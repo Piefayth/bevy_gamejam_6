@@ -5,7 +5,7 @@ use bevy::prelude::*;
 use bevy_tween::{bevy_time_runner::TimeSpan, combinator::{sequence, tween}, prelude::{AnimationBuilderExt, EaseKind}, tween::{AnimationTarget, TargetAsset}};
 
 use crate::{
-    asset_management::asset_tag_components::{ChargePad, Door, PowerButton, PressurePlate},
+    asset_management::asset_tag_components::{Door, PowerButton},
     game::signals::DirectSignal,
     rendering::unlit_material::UnlitMaterial,
 };

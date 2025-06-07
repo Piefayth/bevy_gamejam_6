@@ -1,8 +1,8 @@
 use std::time::Duration;
 
-use avian3d::{parry::mass_properties::MassProperties, prelude::{
-    CollisionEventsEnabled, CollisionLayers, ExternalImpulse, LinearVelocity, Mass, RigidBody, RigidBodyColliders, RotationInterpolation, TransformInterpolation
-}};
+use avian3d::prelude::{
+    CollisionEventsEnabled, CollisionLayers, LinearVelocity, RigidBody, RigidBodyColliders, RotationInterpolation, TransformInterpolation
+};
 use bevy::prelude::*;
 use bevy_tween::{
     bevy_time_runner::TimeSpan,
@@ -41,13 +41,13 @@ pub fn cube_spitter_plugin(app: &mut App) {
 fn check_and_replace_wall_cubes(
     mut commands: Commands,
     mut q_powered_spitters: Query<
-        (Entity, &CubeSpitter, &Transform, &mut OwnedObjects),
+        (&CubeSpitter, &Transform, &mut OwnedObjects),
         (With<CubeSpitter>, With<Powered>),
     >,
     q_existing_entities: Query<Entity>, // To check if owned entities still exist
     game_assets: Res<GameAssets>,
 ) {
-    for (spitter_entity, spitter, spitter_transform, mut spitter_owned_objects) in &mut q_powered_spitters {
+    for (spitter, spitter_transform, mut spitter_owned_objects) in &mut q_powered_spitters {
         // Remove any owned objects that no longer exist
         spitter_owned_objects.0.retain(|&entity| q_existing_entities.contains(entity));
         

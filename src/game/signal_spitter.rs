@@ -55,7 +55,7 @@ pub fn dont_sink_when_held(
     trigger: Trigger<OnAdd, Held>,
     mut commands: Commands,
 ) {
-    commands.entity(trigger.target()).insert((LockedAxes::ALL_LOCKED));
+    commands.entity(trigger.target()).insert(LockedAxes::ALL_LOCKED);
 }
 
 

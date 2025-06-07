@@ -3,8 +3,7 @@ use bevy::{
     prelude::*,
     render::render_resource::{AsBindGroup, ShaderRef, ShaderType},
 };
-use bevy_tween::{asset_tween_system, prelude::Interpolator, tween::TargetAsset, BevyTweenRegisterSystems};
-use crate::game::signals::MaterialIntensityInterpolator;
+use bevy_tween::tween::TargetAsset;
 
 pub fn test_material_plugin(app: &mut App) {
     app

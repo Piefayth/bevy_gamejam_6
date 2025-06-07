@@ -1,11 +1,8 @@
 use std::time::Duration;
 
-use avian3d::{
-    parry::na::Owned,
-    prelude::{
-        Collider, CollisionEventsEnabled, CollisionLayers, ExternalImpulse, LinearVelocity, RigidBody, RigidBodyColliders, RotationInterpolation, SleepingDisabled, TransformInterpolation
-    },
-};
+use avian3d::prelude::{
+        Collider, CollisionEventsEnabled, CollisionLayers, LinearVelocity, RigidBody, RigidBodyColliders, RotationInterpolation, SleepingDisabled, TransformInterpolation
+    };
 use bevy::prelude::*;
 use bevy_tween::{
     bevy_time_runner::TimeSpan,
@@ -18,7 +15,7 @@ use crate::{
     asset_management::{
         asset_loading::GameAssets,
         asset_tag_components::{
-            Immobile, SignalSpitter, StandingCubeSpitter, WeightedCube, WeightedCubeColors
+            Immobile, StandingCubeSpitter, WeightedCube, WeightedCubeColors
         },
     }, game::signal_spitter::{dont_sink_when_held, sink_when_not_held}, rendering::unlit_material::UnlitMaterial, GameState
 };
@@ -26,9 +23,8 @@ use crate::{
 use super::{
     DespawnOnFinish, GameLayer,
     pressure_plate::{POWER_ANIMATION_DURATION_SEC, POWER_MATERIAL_INTENSITY},
-    signal_spitter::ContinuousEmission,
     signals::{
-        DirectSignal, MaterialIntensityInterpolator, OwnedObjects, Powered, SignalAfterDelay,
+        DirectSignal, MaterialIntensityInterpolator, OwnedObjects, Powered,
         default_signal_collisions,
     },
 };
@@ -101,13 +97,13 @@ fn register_standing_cube_spitter_signals(
 fn check_and_replace_cubes(
     mut commands: Commands,
     mut q_powered_spitters: Query<
-        (Entity, &GlobalTransform, &mut OwnedObjects),
+        (&GlobalTransform, &mut OwnedObjects),
         (With<StandingCubeSpitter>, With<Powered>),
     >,
     q_existing_entities: Query<Entity>, // To check if owned entities still exist
     game_assets: Res<GameAssets>,
 ) {
-    for (spitter_entity, spitter_transform, mut spitter_owned_objects) in &mut q_powered_spitters {
+    for (spitter_transform, mut spitter_owned_objects) in &mut q_powered_spitters {
         // Remove any owned objects that no longer exist
         spitter_owned_objects.0.retain(|&entity| q_existing_entities.contains(entity));
         
@@ -218,14 +214,14 @@ fn cube_spitter_direct_signal(
 fn cube_spitter_receive_power(
     trigger: Trigger<OnAdd, Powered>,
     mut commands: Commands,
-    mut q_spitter: Query<(Entity, &RigidBodyColliders, &GlobalTransform, &mut OwnedObjects), With<StandingCubeSpitter>>,
+    mut q_spitter: Query<(&RigidBodyColliders, &GlobalTransform, &mut OwnedObjects), With<StandingCubeSpitter>>,
     q_unlit_objects: Query<&MeshMaterial3d<UnlitMaterial>>,
     unlit_materials: Res<Assets<UnlitMaterial>>,
     q_tween: Query<(), With<TimeSpan>>,
     q_children: Query<&Children, With<Collider>>,
     game_assets: Res<GameAssets>,
 ) {
-    if let Ok((spitter_entity, spitter_children, spitter_transform, mut spitter_owned_objects)) =
+    if let Ok((spitter_children, spitter_transform, mut spitter_owned_objects)) =
         q_spitter.get_mut(trigger.target())
     {
         // Animate material to powered state
@@ -291,13 +287,13 @@ fn cube_spitter_receive_power(
 fn cube_spitter_lose_power(
     trigger: Trigger<OnRemove, Powered>,
     mut commands: Commands,
-    q_spitter: Query<(Entity, &RigidBodyColliders), With<StandingCubeSpitter>>,
+    q_spitter: Query<&RigidBodyColliders, With<StandingCubeSpitter>>,
     q_unlit_objects: Query<&MeshMaterial3d<UnlitMaterial>>,
     unlit_materials: Res<Assets<UnlitMaterial>>,
     q_tween: Query<(), With<TimeSpan>>,
     q_children: Query<&Children>,
 ) {
-    if let Ok((spitter_entity, spitter_children)) = q_spitter.get(trigger.target()) {
+    if let Ok(spitter_children) = q_spitter.get(trigger.target()) {
         // Animate material back to unpowered state
         for collider_entity in spitter_children.iter() {
             if let Ok(collider_children) = q_children.get(collider_entity) {

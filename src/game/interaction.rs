@@ -12,16 +12,13 @@ use bevy_tween::{
     tween::{AnimationTarget, TargetComponent},
 };
 
-use crate::{
-    GameState,
-    asset_management::{
+use crate::asset_management::{
         asset_loading::GameAssets,
         asset_tag_components::{
             BigRedButton, CubeSpitter, ExitDoorShutter, Immobile, PowerButton, SignalSpitter,
             StandingCubeSpitter, WeightedCube,
         },
-    },
-};
+    };
 
 use super::{
     button::button_pressed, dissolve_gate::Dissolveable, input::UseInteract, player::{Held, RightHand}, signals::{Signal, MAX_SIGNAL_TRAVEL_DIST}, GameLayer
@@ -253,7 +250,7 @@ fn register_weighted_cube_interaction(
 
 fn register_signal_spitter_interaction(
     mut commands: Commands,
-    q_new_spitters: Query<(Entity, &Children, &Transform, Has<Immobile>), (Added<SignalSpitter>)>,
+    q_new_spitters: Query<(Entity, &Children, &Transform, Has<Immobile>), Added<SignalSpitter>>,
     q_mesh: Query<Entity, With<Mesh3d>>,
 ) {
     for (new_spitter, children, transform, is_immobile) in &q_new_spitters {
@@ -287,7 +284,7 @@ fn register_standing_cube_spitter_interaction(
     mut commands: Commands,
     q_new_spitters: Query<
         (Entity, &Children, &Transform, Has<Immobile>),
-        (Added<StandingCubeSpitter>)
+        Added<StandingCubeSpitter>
     >,
     q_mesh: Query<Entity, With<Mesh3d>>,
 ) {

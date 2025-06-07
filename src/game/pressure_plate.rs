@@ -1,15 +1,20 @@
 use super::{
-    DespawnOnFinish, GameLayer,
     signals::{MaterialIntensityInterpolator, Powered},
+    DespawnOnFinish, GameLayer,
 };
 use crate::{
     asset_management::asset_tag_components::{ChargePad, PressurePlate, WeightedCube},
-    rendering::unlit_material::UnlitMaterial, GameState,
+    rendering::unlit_material::UnlitMaterial,
+    GameState,
 };
 use avian3d::prelude::*;
-use bevy::{math::VectorSpace, prelude::*};
+use bevy::{prelude::*};
 use bevy_tween::{
-    bevy_time_runner::TimeSpan, combinator::tween, interpolate::translation, prelude::{AnimationBuilderExt, EaseKind}, tween::{AnimationTarget, TargetAsset, TargetComponent}
+    bevy_time_runner::TimeSpan,
+    combinator::tween,
+    interpolate::translation,
+    prelude::{AnimationBuilderExt, EaseKind},
+    tween::{AnimationTarget, TargetAsset, TargetComponent},
 };
 use std::{collections::HashSet, time::Duration};
 
@@ -50,14 +55,12 @@ impl Default for ChargePadDetector {
 #[derive(Event)]
 pub struct PressurePlatePressed {
     pub plate_entity: Entity,
-    pub triggering_entity: Entity,
 }
 
 /// Observer event fired when a pressure plate is released
 #[derive(Event)]
 pub struct PressurePlateReleased {
     pub plate_entity: Entity,
-    pub last_entity: Option<Entity>,
 }
 
 /// Observer event fired when an entity enters a charge pad
@@ -85,43 +88,9 @@ pub fn pressure_plate_plugin(app: &mut App) {
     )
     .add_systems(
         FixedUpdate,
-        (update_pressure_plate_overlaps, update_charge_pad_overlaps).run_if(in_state(GameState::Playing)),
+        (update_pressure_plate_overlaps, update_charge_pad_overlaps)
+            .run_if(in_state(GameState::Playing)),
     );
-}
-
-fn debug_draw_pressure_plate_detection(
-    mut gizmos: Gizmos,
-    q_plates: Query<(&GlobalTransform, &PressurePlateDetector), With<PressurePlate>>,
-    q_charge_pads: Query<(&GlobalTransform, &ChargePadDetector), With<ChargePad>>,
-) {
-    for (plate_transform, detector) in q_plates.iter() {
-        let detection_center = plate_transform.translation() + DETECTION_OFFSET;
-        let color = if detector.is_pressed {
-            Color::srgb(1.0, 0.0, 0.0)
-        } else {
-            Color::srgb(0.0, 1.0, 0.0)
-        };
-
-        gizmos.cuboid(
-            Transform::from_translation(detection_center).with_scale(DETECTION_SIZE),
-            color,
-        );
-    }
-
-    // Debug draw charge pad detection areas
-    for (charge_pad_transform, detector) in q_charge_pads.iter() {
-        let detection_center = charge_pad_transform.translation() + detector.detection_offset;
-        let color = if detector.charged_entity.is_some() {
-            Color::srgb(1.0, 1.0, 0.0) // Yellow when charging something
-        } else {
-            Color::srgb(0.0, 0.0, 1.0) // Blue when idle
-        };
-
-        gizmos.cuboid(
-            Transform::from_translation(detection_center).with_scale(detector.detection_size),
-            color,
-        );
-    }
 }
 
 #[derive(Component, Debug)]
@@ -208,13 +177,13 @@ fn register_charge_pads(mut commands: Commands, q_new_charge_pad: Query<Entity, 
 fn update_charge_pad_overlaps(
     mut commands: Commands,
     mut q_charge_pads: Query<
-        (Entity, &GlobalTransform, &mut ChargePadDetector, &Children, Option<&Powered>),
-        (With<ChargePad>),
+        (Entity, &GlobalTransform, &mut ChargePadDetector, &Children),
+        With<ChargePad>,
     >,
     spatial_query: SpatialQuery,
     q_collider_of: Query<&ColliderOf>, // To check if entity has a rigid body
 ) {
-    for (charge_pad_entity, charge_pad_transform, mut detector, charge_pad_children, maybe_powered) in
+    for (charge_pad_entity, charge_pad_transform, mut detector, charge_pad_children) in
         q_charge_pads.iter_mut()
     {
         let mut current_overlaps = HashSet::new();
@@ -303,7 +272,6 @@ fn on_charge_pad_entity_entered(
                     .insert(Powered)
                     .insert(PoweredBy(charge_pad_entity));
             }
-
         }
     }
 }
@@ -342,7 +310,7 @@ fn on_charge_pad_entity_left(
             // Check if there are other entities we can start charging
             // Priority: charge the first available entity in the overlapping set
             if let Some(&next_entity) = detector.overlapping_entities.iter().next() {
-                if next_entity != leaving_entity{
+                if next_entity != leaving_entity {
                     detector.charged_entity = Some(next_entity);
                     if is_powered {
                         commands
@@ -350,7 +318,6 @@ fn on_charge_pad_entity_left(
                             .insert(Powered)
                             .insert(PoweredBy(charge_pad_entity));
                     }
-
                 }
             }
         }
@@ -403,37 +370,17 @@ fn update_pressure_plate_overlaps(
                 if !detector.is_pressed {
                     // Plate was not pressed, now it is
                     detector.is_pressed = true;
-                    commands.trigger_targets(
-                        PressurePlatePressed {
-                            plate_entity,
-                            triggering_entity: entity,
-                        },
-                        plate_entity,
-                    );
+                    commands.trigger_targets(PressurePlatePressed { plate_entity }, plate_entity);
                 }
             }
         }
-
-        // Detect entities that left
-        let entities_that_left: Vec<Entity> = detector
-            .overlapping_entities
-            .difference(&current_overlaps)
-            .copied()
-            .collect();
-
         // Update the overlapping entities
         detector.overlapping_entities = current_overlaps;
 
         // Check if plate should be released
         if detector.is_pressed && detector.overlapping_entities.is_empty() {
             detector.is_pressed = false;
-            commands.trigger_targets(
-                PressurePlateReleased {
-                    plate_entity,
-                    last_entity: entities_that_left.first().copied(),
-                },
-                plate_entity,
-            );
+            commands.trigger_targets(PressurePlateReleased { plate_entity }, plate_entity);
         }
     }
 }

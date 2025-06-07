@@ -14,23 +14,23 @@ use bevy::{
 };
 
 use bevy_enhanced_input::{
-    EnhancedInputSystem,
     prelude::{ActionValue, Actions},
+    EnhancedInputSystem,
 };
 use bevy_tnua::prelude::*;
 use bevy_tnua_avian3d::*;
 
 use crate::{
-    GameState, MainCamera,
     rendering::{section_color_prepass::DrawSection, unlit_material::UnlitMaterial},
     ui::crosshair::CrosshairState,
+    GameState, MainCamera,
 };
 
 use super::{
-    GameLayer,
     dissolve_gate::handle_dissolve_collisions,
     input::{FixedInputContext, Jump, Look, Movement, UpdateInputContext},
     interaction::InteractionsDisabled,
+    GameLayer,
 };
 
 pub fn player_plugin(app: &mut App) {
@@ -118,41 +118,37 @@ fn move_player(
     input: Single<&Actions<FixedInputContext>>,
     camera: Single<&Transform, With<MainCamera>>,
 ) {
-    if let Ok(action) = input.value::<Movement>() {
-        if let ActionValue::Axis2D(movement) = action {
-            let camera_forward = camera.forward();
-            let camera_right = camera.right();
+    if let Ok(ActionValue::Axis2D(movement)) = input.value::<Movement>() {
+        let camera_forward = camera.forward();
+        let camera_right = camera.right();
 
-            let forward_horizontal = Vec3::new(camera_forward.x, 0.0, camera_forward.z).normalize();
-            let right_horizontal = Vec3::new(camera_right.x, 0.0, camera_right.z).normalize();
+        let forward_horizontal = Vec3::new(camera_forward.x, 0.0, camera_forward.z).normalize();
+        let right_horizontal = Vec3::new(camera_right.x, 0.0, camera_right.z).normalize();
 
-            let direction = forward_horizontal * movement.y + right_horizontal * movement.x;
+        let direction = forward_horizontal * movement.y + right_horizontal * movement.x;
 
-            controller.basis(TnuaBuiltinWalk {
-                desired_velocity: direction * PLAYER_VELOCITY,
-                float_height: 4.0,
-                max_slope: FRAC_PI_2,
-                acceleration: 120.,
-                air_acceleration: 120.,
-                free_fall_extra_gravity: 100.,
-                ..default()
-            });
-        }
+        controller.basis(TnuaBuiltinWalk {
+            desired_velocity: direction * PLAYER_VELOCITY,
+            float_height: 4.0,
+            max_slope: FRAC_PI_2,
+            acceleration: 120.,
+            air_acceleration: 120.,
+            free_fall_extra_gravity: 100.,
+            ..default()
+        });
     }
 }
 
 fn jump(mut controller: Single<&mut TnuaController>, input: Single<&Actions<FixedInputContext>>) {
-    if let Ok(action) = input.value::<Jump>() {
-        if let ActionValue::Bool(jump) = action {
-            if jump {
-                controller.action(TnuaBuiltinJump {
-                    height: 8.0,
-                    takeoff_extra_gravity: 120.,
-                    fall_extra_gravity: 60.,
-                    shorten_extra_gravity: 0.0,
-                    ..default()
-                });
-            }
+    if let Ok(ActionValue::Bool(jump)) = input.value::<Jump>() {
+        if jump {
+            controller.action(TnuaBuiltinJump {
+                height: 8.0,
+                takeoff_extra_gravity: 120.,
+                fall_extra_gravity: 60.,
+                shorten_extra_gravity: 0.0,
+                ..default()
+            });
         }
     }
 }
@@ -165,19 +161,16 @@ fn rotate_camera(
     mut camera: Single<&mut Transform, With<MainCamera>>,
     time: Res<Time>,
 ) {
-    if let Ok(action) = input.value::<Look>() {
-        if let ActionValue::Axis2D(look) = action {
-            let scaled_sensitivity = SENSITIVITY * time.delta_secs();
+    if let Ok(ActionValue::Axis2D(look)) = input.value::<Look>() {
+        let scaled_sensitivity = SENSITIVITY * time.delta_secs();
 
-            camera.rotate_y(-look.x * scaled_sensitivity);
+        camera.rotate_y(-look.x * scaled_sensitivity);
 
-            let current_pitch = camera.rotation.to_euler(EulerRot::YXZ).1;
-            let new_pitch =
-                (current_pitch - look.y * scaled_sensitivity).clamp(-MAX_PITCH, MAX_PITCH);
-            let pitch_delta = new_pitch - current_pitch;
+        let current_pitch = camera.rotation.to_euler(EulerRot::YXZ).1;
+        let new_pitch = (current_pitch - look.y * scaled_sensitivity).clamp(-MAX_PITCH, MAX_PITCH);
+        let pitch_delta = new_pitch - current_pitch;
 
-            camera.rotate_local_x(pitch_delta);
-        }
+        camera.rotate_local_x(pitch_delta);
     }
 }
 

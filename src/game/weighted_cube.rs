@@ -1,24 +1,18 @@
 use std::time::Duration;
 
 use avian3d::prelude::{
-    Collider, ColliderConstructor, ColliderOf, CollisionEventsEnabled, CollisionLayers,
-    ExternalImpulse, OnCollisionStart, RigidBody, RigidBodyColliders, RotationInterpolation,
-    Sensor, SleepingDisabled, SpatialQuery, SpatialQueryFilter, TransformInterpolation,
+    Collider, ColliderOf, CollisionEventsEnabled, CollisionLayers, OnCollisionStart, RigidBodyColliders, SleepingDisabled, SpatialQuery, SpatialQueryFilter,
 };
 use bevy::prelude::*;
 use bevy_tween::{
-    bevy_time_runner::{TimeRunner, TimeSpan},
-    combinator::{sequence, tween},
-    interpolate::translation,
-    prelude::{AnimationBuilderExt, EaseKind, Interpolator},
-    tween::{AnimationTarget, IntoTarget, TargetAsset, TargetComponent},
+    bevy_time_runner::TimeSpan,
+    combinator::tween,
+    prelude::{AnimationBuilderExt, EaseKind},
+    tween::{AnimationTarget, TargetAsset},
 };
 
 use crate::{
-    asset_management::{
-        asset_loading::GameAssets,
-        asset_tag_components::{CubeSpitter, Inert, SignalSpitter, WeightedCube, WeightedCubeColors},
-    }, rendering::unlit_material::UnlitMaterial, GameState
+    asset_management::asset_tag_components::{Inert, WeightedCube}, rendering::unlit_material::UnlitMaterial, GameState
 };
 
 use super::{
@@ -164,7 +158,7 @@ fn update_cube_discharge_timers(
 fn cube_direct_signal(
     trigger: Trigger<DirectSignal>,
     mut commands: Commands,
-    q_powered: Query<(), (With<Powered>)>,
+    q_powered: Query<(), With<Powered>>,
     q_discharging: Query<(), With<CubeDischarge>>, // Check if cube is in cooldown
 ) {
     let target = trigger.target();
@@ -177,13 +171,13 @@ fn cube_direct_signal(
 
 fn cube_receive_power(
     mut commands: Commands,
-    q_powered_cube: Query<(Entity, &RigidBodyColliders), (With<WeightedCube>, Added<Powered>)>,
+    q_powered_cube: Query<&RigidBodyColliders, (With<WeightedCube>, Added<Powered>)>,
     q_unlit_objects: Query<&MeshMaterial3d<UnlitMaterial>>,
     unlit_materials: Res<Assets<UnlitMaterial>>,
     q_tween: Query<(), With<TimeSpan>>,
     q_children: Query<&Children, With<Collider>>,
 ) {
-    for (powered_cube, powered_cube_colliders) in &q_powered_cube {
+    for powered_cube_colliders in &q_powered_cube {
         for collider_entity in powered_cube_colliders.iter() {
             // Clear existing tweens first
             if let Ok(collider_children) = q_children.get(collider_entity) {
@@ -224,13 +218,13 @@ fn cube_receive_power(
 fn cube_lose_power(
     trigger: Trigger<OnRemove, Powered>,
     mut commands: Commands,
-    q_cube: Query<(Entity, &RigidBodyColliders), (With<WeightedCube>, Without<Tombstone>)>,
+    q_cube: Query<&RigidBodyColliders, (With<WeightedCube>, Without<Tombstone>)>,
     q_unlit_objects: Query<&MeshMaterial3d<UnlitMaterial>>,
     unlit_materials: Res<Assets<UnlitMaterial>>,
     q_tween: Query<(), With<TimeSpan>>,
     q_children: Query<&Children, With<Collider>>,
 ) {
-    if let Ok((cube_entity, cube_colliders)) = q_cube.get(trigger.target()) {
+    if let Ok(cube_colliders) = q_cube.get(trigger.target()) {
         for collider_entity in cube_colliders.iter() {
             // Clear existing tweens first
             if let Ok(collider_children) = q_children.get(collider_entity) {

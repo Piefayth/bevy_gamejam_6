@@ -1,7 +1,7 @@
 use avian3d::prelude::RigidBody;
 use bevy::prelude::*;
 
-use crate::game::{dissolve_gate::Dissolveable, signals::Powered};
+use crate::game::dissolve_gate::Dissolveable;
 
 // Thanks to a bug with Bevity, we need to make these tag components with any random field
 // whoops

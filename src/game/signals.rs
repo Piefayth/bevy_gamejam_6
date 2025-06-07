@@ -2,24 +2,22 @@ use std::time::Duration;
 
 use avian3d::prelude::{
     ColliderConstructor, CollisionEventsEnabled, CollisionLayers,
-    OnCollisionStart, RigidBody, RigidBodyColliders, Sensor,
+    OnCollisionStart, RigidBody, Sensor,
 };
 use bevy::prelude::*;
 use bevy_tween::{
     combinator::tween,
     interpolate::translation,
     prelude::{AnimationBuilderExt, EaseKind, Interpolator},
-    tween::{AnimationTarget, TargetAsset, TargetComponent},
+    tween::{AnimationTarget, TargetComponent},
 };
 
 use crate::{
-    asset_management::{
-        asset_loading::GameAssets, asset_tag_components::PermanentlyPowered,
-    }, rendering::unlit_material::UnlitMaterial, GameState
+    asset_management::asset_loading::GameAssets, rendering::unlit_material::UnlitMaterial, GameState
 };
 
 use super::{
-    door::PoweredTimer, pressure_plate::{POWER_ANIMATION_DURATION_SEC, POWER_MATERIAL_INTENSITY}, DespawnOnFinish, GameLayer
+    door::PoweredTimer, GameLayer
 };
 
 pub fn signals_plugin(app: &mut App) {

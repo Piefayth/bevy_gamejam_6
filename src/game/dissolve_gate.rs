@@ -1,12 +1,12 @@
-use std::{f32::consts::FRAC_PI_4, time::Duration};
+use std::f32::consts::FRAC_PI_4;
 
-use avian3d::{math::FRAC_PI_2, prelude::{
+use avian3d::prelude::{
     ColliderOf, CollisionEventsEnabled, CollisionLayers, OnCollisionStart, Sensor,
-}};
-use bevy::{color::palettes::{css::RED, tailwind::{PURPLE_300, RED_300}}, prelude::*};
+};
+use bevy::{color::palettes::tailwind::PURPLE_300, prelude::*};
 
 use crate::{
-    asset_management::asset_tag_components::DissolveGate, game::{player::Held, signals::DespawnAfter, standing_cube_spitter::Tombstone},
+    asset_management::asset_tag_components::DissolveGate, game::{player::Held, standing_cube_spitter::Tombstone},
     rendering::{test_material::{TestMaterial, TestMaterialExtension, TestMaterialParams}, unlit_material::UnlitMaterial},
 };
 
@@ -29,12 +29,12 @@ pub struct Dissolveable {
 
 fn register_dissolve_gates(
     mut commands: Commands,
-    q_new_gate: Query<(Entity, &Children), Added<DissolveGate>>,
-    mut unlit_materials: ResMut<Assets<UnlitMaterial>>,
+    q_new_gate: Query<&Children, Added<DissolveGate>>,
+    unlit_materials: ResMut<Assets<UnlitMaterial>>,
     mut test_materials: ResMut<Assets<TestMaterial>>,
     q_unlit_objects: Query<&MeshMaterial3d<UnlitMaterial>>,
 ) {
-    for (gate_entity, gate_children) in &q_new_gate {
+    for gate_children in &q_new_gate {
         for gate_child in gate_children.iter() {
             if let Ok(material_handle) = q_unlit_objects.get(gate_child) {
                 let mut old_material = unlit_materials.get(material_handle).unwrap().clone();

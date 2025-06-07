@@ -1,14 +1,12 @@
 use asset_management::asset_plugins;
-use avian3d::prelude::{Collider, ColliderDisabled, CollisionLayers, PhysicsGizmos, RigidBody, RigidBodyDisabled, RotationInterpolation};
+use avian3d::prelude::{Collider, CollisionLayers, PhysicsGizmos, RigidBody, RigidBodyDisabled, RotationInterpolation};
 use bevy::{
     color::palettes::{css::{GREEN, MAGENTA}, tailwind::CYAN_400},
     core_pipeline::{
         bloom::{Bloom, BloomPrefilter},
         fxaa::Fxaa,
-        prepass::{DeferredPrepass, DepthPrepass},
     },
-    prelude::*,
-    render::experimental::occlusion_culling::OcclusionCulling, text::FontSmoothing,
+    prelude::*, text::FontSmoothing,
 };
 #[cfg(feature = "dev")]
 use bevy_dev_tools::fps_overlay::{FpsOverlayConfig, FpsOverlayPlugin};
@@ -30,8 +28,6 @@ mod rendering;
 mod ui;
 
 fn main() -> AppExit {
-        #[cfg(feature = "trace_tracy")]
-    println!("✅ Tracy tracing is enabled!");
     App::new()
         .add_plugins((
             DefaultPlugins,
@@ -149,7 +145,7 @@ impl Default for RigidBodyDistanceConfig {
 pub fn rigid_body_distance_system(
     mut commands: Commands,
     config: Res<RigidBodyDistanceConfig>,
-    player_query: Query<&GlobalTransform, (With<Player>)>,
+    player_query: Query<&GlobalTransform, With<Player>>,
     mut rigidbody_query: Query<
         (Entity, &GlobalTransform, Option<&RigidBodyDisabled>),
         (With<RigidBody>, Without<Player>),
@@ -204,7 +200,7 @@ pub struct OldCollisionLayers(pub CollisionLayers);
 pub fn collider_distance_system(
     mut commands: Commands,
     config: Res<ColliderDistanceConfig>,
-    player_query: Query<&GlobalTransform, (With<Player>)>,
+    player_query: Query<&GlobalTransform, With<Player>>,
     mut collider_query: Query<
         (Entity, &GlobalTransform, Option<&OldCollisionLayers>, Option<&CollisionLayers>),
         (With<Collider>, Without<Player>),

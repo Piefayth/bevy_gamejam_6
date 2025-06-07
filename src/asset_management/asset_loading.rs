@@ -1,4 +1,4 @@
-use avian3d::prelude::{Collider, ColliderConstructor, RigidBody};
+use avian3d::prelude::{Collider, RigidBody};
 use bevy::{asset::LoadState, color::palettes::css::WHITE, pbr::ExtendedMaterial, prelude::*};
 
 use crate::{
@@ -65,9 +65,7 @@ fn on_start_loading(
     mut commands: Commands,
     mut game_assets: ResMut<GameAssets>,
     asset_server: Res<AssetServer>,
-    meshes: ResMut<Assets<Mesh>>,
     mut unlit_materials: ResMut<Assets<UnlitMaterial>>,
-    standard_materials: ResMut<Assets<StandardMaterial>>,
 ) {
     game_assets.main_menu_environment =
         asset_server.load(GltfAssetLabel::Scene(0).from_asset("scenes/jam6scene1.glb"));
