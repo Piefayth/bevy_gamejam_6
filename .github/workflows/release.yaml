@@ -21,7 +21,7 @@ concurrency:
 # Configure the release workflow by editing the following values.
 env:
   # The base filename of the binary produced by `cargo build`.
-  cargo_build_binary_name: bevy-jam-6
+  cargo_build_binary_name: bevy-gamejam-6
 
   # The path to the assets directory.
   assets_path: assets
@@ -46,7 +46,7 @@ env:
   # The ID of the app produced by this workflow.
   # Applies to macOS releases.
   # Must contain only A-Z, a-z, 0-9, hyphen, and period: <https://developer.apple.com/documentation/bundleresources/information_property_list/cfbundleidentifier>.
-  app_id: piefayth.bevy-jam-6
+  app_id: piefayth.bevy-gamejam-6
 
   # The base filename of the binary in the package produced by this workflow.
   # Applies to Windows, macOS, and Linux releases.
@@ -55,7 +55,7 @@ env:
 
   # The name of the `.zip` or `.dmg` file produced by this workflow.
   # Defaults to `app_binary_name` if commented out.
-  #app_package_name: bevy-jam-6
+  #app_package_name: bevy-gamejam-6
 
   # The display name of the app produced by this workflow.
   # Applies to macOS releases.

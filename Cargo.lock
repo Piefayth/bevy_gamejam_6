@@ -469,6 +469,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "bevy-gamejam-6"
+version = "0.1.0"
+dependencies = [
+ "avian3d",
+ "bevy",
+ "bevy-inspector-egui",
+ "bevy-tnua",
+ "bevy-tnua-avian3d",
+ "bevy_dev_tools",
+ "bevy_enhanced_input",
+ "bevy_tween",
+ "log",
+ "nonmax",
+ "serde",
+ "serde_json",
+ "tracing",
+]
+
+[[package]]
 name = "bevy-inspector-egui"
 version = "0.31.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -511,25 +530,6 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn",
-]
-
-[[package]]
-name = "bevy-jam-6"
-version = "0.1.0"
-dependencies = [
- "avian3d",
- "bevy",
- "bevy-inspector-egui",
- "bevy-tnua",
- "bevy-tnua-avian3d",
- "bevy_dev_tools",
- "bevy_enhanced_input",
- "bevy_tween",
- "log",
- "nonmax",
- "serde",
- "serde_json",
- "tracing",
 ]
 
 [[package]]
