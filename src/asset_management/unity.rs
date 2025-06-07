@@ -1,14 +1,12 @@
 use std::net::Ipv4Addr;
 
-use bevy::{
-    ecs::reflect::ReflectCommandExt, prelude::*, reflect::serde::ReflectDeserializer
-};
+use bevy::{ecs::reflect::ReflectCommandExt, prelude::*, reflect::serde::ReflectDeserializer};
 
 #[cfg(not(target_arch = "wasm32"))]
 #[cfg(feature = "dev")]
 use bevy::remote::{http::RemoteHttpPlugin, RemotePlugin};
 
-use serde::{de::DeserializeSeed};
+use serde::de::DeserializeSeed;
 use serde_json::Value;
 
 pub struct UnityPlugin {
@@ -39,12 +37,7 @@ impl Plugin for UnityPlugin {
 }
 
 fn apply_bevity_components(
-    trigger: Trigger<
-        OnAdd,
-        (
-            GltfExtras,
-        ),
-    >,
+    trigger: Trigger<OnAdd, (GltfExtras,)>,
     type_registry: Res<AppTypeRegistry>,
     gltf_extras: Query<&GltfExtras>,
     names: Query<&Name>,
@@ -52,12 +45,7 @@ fn apply_bevity_components(
 ) {
     let entity = trigger.target();
     let gltf_extra = gltf_extras.get(entity).map(|v| &v.value);
-    for extras in [
-        gltf_extra,
-    ]
-    .iter()
-    .filter_map(|p| p.ok())
-    {
+    for extras in [gltf_extra].iter().filter_map(|p| p.ok()) {
         let obj = match serde_json::from_str(extras) {
             Ok(Value::Object(obj)) => obj,
             Ok(Value::Null) => {
@@ -93,17 +81,14 @@ fn apply_bevity_components(
 
         let bevity = match obj.get("bevity") {
             Some(Value::Array(components)) => components,
-            _ => continue
+            _ => continue,
         };
 
         for json_component in bevity.iter() {
             let type_registry = type_registry.read();
 
-            let reflect_deserializer =
-                ReflectDeserializer::new(&type_registry);
-            let reflect_value = match reflect_deserializer
-                .deserialize(json_component)
-            {
+            let reflect_deserializer = ReflectDeserializer::new(&type_registry);
+            let reflect_value = match reflect_deserializer.deserialize(json_component) {
                 Ok(value) => value,
                 Err(err) => {
                     error!(
@@ -115,9 +100,7 @@ fn apply_bevity_components(
                 }
             };
 
-            commands
-                .entity(entity)
-                .insert_reflect(reflect_value);
+            commands.entity(entity).insert_reflect(reflect_value);
         }
     }
 }

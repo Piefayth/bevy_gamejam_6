@@ -96,13 +96,11 @@ pub struct ExtraDoorPowerRequired {
     pub amount: u32,
 }
 
-
 #[derive(Component, Reflect, Debug)]
 #[reflect(Component)]
 pub struct DoorPole {
     pub unused: bool,
 }
-
 
 #[derive(Component, Reflect, Debug)]
 #[reflect(Component)]
@@ -122,7 +120,6 @@ pub struct PowerButton {
     pub unused: bool,
 }
 
-
 #[derive(Component, Reflect)]
 #[reflect(Component)]
 pub struct PermanentlyPowered {
@@ -134,7 +131,6 @@ pub struct PermanentlyPowered {
 pub struct FancyMesh {
     pub unused: bool,
 }
-
 
 pub fn asset_tag_components_plugin(app: &mut App) {
     app.register_type::<RoomWall>()
@@ -158,6 +154,5 @@ pub fn asset_tag_components_plugin(app: &mut App) {
         .register_type::<PowerButton>()
         .register_type::<PermanentlyPowered>()
         .register_type::<ExtraDoorPowerRequired>()
-        .register_type::<FancyMesh>()
-        ;
+        .register_type::<FancyMesh>();
 }

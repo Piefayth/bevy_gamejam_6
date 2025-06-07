@@ -6,8 +6,7 @@ use bevy::{
 use bevy_tween::tween::TargetAsset;
 
 pub fn test_material_plugin(app: &mut App) {
-    app
-        .add_plugins(MaterialPlugin::<TestMaterial>::default())
+    app.add_plugins(MaterialPlugin::<TestMaterial>::default())
         .register_type::<TestMaterial>()
         .register_type::<TargetAsset<TestMaterial>>()
         .register_asset_reflect::<TestMaterial>();

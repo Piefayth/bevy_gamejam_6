@@ -1,7 +1,8 @@
 use std::time::Duration;
 
 use avian3d::prelude::{
-    ColliderConstructor, ColliderOf, CollisionEventsEnabled, CollisionLayers, LockedAxes, RigidBody, RigidBodyColliders, Sensor, SpatialQuery, SpatialQueryFilter
+    ColliderConstructor, ColliderOf, CollisionEventsEnabled, CollisionLayers, LockedAxes,
+    RigidBody, RigidBodyColliders, Sensor, SpatialQuery, SpatialQueryFilter,
 };
 use bevy::prelude::*;
 use bevy_enhanced_input::events::Completed;
@@ -13,15 +14,20 @@ use bevy_tween::{
 };
 
 use crate::asset_management::{
-        asset_loading::GameAssets,
-        asset_tag_components::{
-            BigRedButton, CubeSpitter, ExitDoorShutter, Immobile, PowerButton, SignalSpitter,
-            StandingCubeSpitter, WeightedCube,
-        },
-    };
+    asset_loading::GameAssets,
+    asset_tag_components::{
+        BigRedButton, CubeSpitter, ExitDoorShutter, Immobile, PowerButton, SignalSpitter,
+        StandingCubeSpitter, WeightedCube,
+    },
+};
 
 use super::{
-    button::button_pressed, dissolve_gate::Dissolveable, input::UseInteract, player::{Held, RightHand}, signals::{Signal, MAX_SIGNAL_TRAVEL_DIST}, GameLayer
+    button::button_pressed,
+    dissolve_gate::Dissolveable,
+    input::UseInteract,
+    player::{Held, RightHand},
+    signals::{Signal, MAX_SIGNAL_TRAVEL_DIST},
+    GameLayer,
 };
 
 pub fn interaction_plugin(app: &mut App) {
@@ -284,7 +290,7 @@ fn register_standing_cube_spitter_interaction(
     mut commands: Commands,
     q_new_spitters: Query<
         (Entity, &Children, &Transform, Has<Immobile>),
-        Added<StandingCubeSpitter>
+        Added<StandingCubeSpitter>,
     >,
     q_mesh: Query<Entity, With<Mesh3d>>,
 ) {

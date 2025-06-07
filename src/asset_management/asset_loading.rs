@@ -22,9 +22,7 @@ pub(crate) fn assets_plugin(app: &mut App) {
             Update,
             (
                 check_asset_loading.run_if(in_state(AssetLoaderState::Loading)),
-                (assign_colliders_to_meshes,
-                add_rigidbodies_to_colliders,
-                ).chain()
+                (assign_colliders_to_meshes, add_rigidbodies_to_colliders).chain(),
             ),
         )
         .add_systems(OnEnter(AssetLoaderState::Loading), on_start_loading)
@@ -215,12 +213,9 @@ fn postprocess_assets(
                         );
                     }
 
-                    scene
-                        .world
-                        .entity_mut(*entity)
-                        .insert(NeedsRigidBody {
-                    kind: RigidBody::Static,
-                });
+                    scene.world.entity_mut(*entity).insert(NeedsRigidBody {
+                        kind: RigidBody::Static,
+                    });
                 }
             }
 
@@ -261,14 +256,10 @@ fn postprocess_assets(
     commands.set_state(GameState::Playing);
 }
 
-
 fn assign_colliders_to_meshes(
     mut commands: Commands,
     // Query for mesh entities that don't have colliders yet
-    mesh_entities: Query<
-        (Entity, &Mesh3d, Option<&ChildOf>),
-        (Without<Collider>, Added<Mesh3d>)
-    >,
+    mesh_entities: Query<(Entity, &Mesh3d, Option<&ChildOf>), (Without<Collider>, Added<Mesh3d>)>,
     // Query for entities that should use trimesh colliders
     trimesh_entities: Query<(), Or<(With<Door>, With<FancyMesh>)>>,
     // Query for entities with WeightedCube component
@@ -281,7 +272,7 @@ fn assign_colliders_to_meshes(
         if let Some(mesh) = meshes.get(&mesh_handle.0) {
             // Check if entity itself has components that should use TrimeshFromMesh
             let entity_needs_trimesh = trimesh_entities.contains(entity);
-           
+
             // Check if parent has components that should use TrimeshFromMesh
             let parent_needs_trimesh = if let Some(parent) = parent {
                 trimesh_entities.contains(parent.parent())
@@ -291,9 +282,9 @@ fn assign_colliders_to_meshes(
 
             // ok we dont need this but im too scared to break anything sooo
             let has_weighted_cube_parent = check_for_weighted_cube_in_hierarchy(
-                entity, 
-                &weighted_cube_entities, 
-                &parent_query
+                entity,
+                &weighted_cube_entities,
+                &parent_query,
             );
 
             let collider = if entity_needs_trimesh || parent_needs_trimesh {
@@ -363,20 +354,20 @@ fn add_rigidbodies_to_colliders(
         // Check if any parent in the hierarchy has exclusion components
         let mut has_excluded_parent = false;
         let mut current_parent = child_of.parent();
-        
+
         loop {
             if q_exclusions.contains(current_parent) {
                 has_excluded_parent = true;
                 break;
             }
-            
+
             if let Ok(parent_child_of) = parent_query.get(current_parent) {
                 current_parent = parent_child_of.parent();
             } else {
                 break; // No more parents
             }
         }
-        
+
         if !has_excluded_parent {
             commands
                 .entity(entity)

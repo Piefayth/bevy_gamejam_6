@@ -1,9 +1,9 @@
 use avian3d::{
-    PhysicsPlugins,
     prelude::{Collider, Gravity, PhysicsLayer},
+    PhysicsPlugins,
 };
 use bevy::prelude::*;
-use bevy_tween::{TweenSystemSet, bevy_time_runner::TimeRunnerEnded};
+use bevy_tween::{bevy_time_runner::TimeRunnerEnded, TweenSystemSet};
 use button::button_plugin;
 use cube_spitter::cube_spitter_plugin;
 use dissolve_gate::dissolve_gate_plugin;
@@ -20,7 +20,9 @@ use weighted_cube::cube_plugin;
 
 use crate::game::discharge_gate::discharge_gate_plugin;
 
+pub mod button;
 pub mod cube_spitter;
+pub mod discharge_gate;
 pub mod dissolve_gate;
 pub mod door;
 pub mod inert;
@@ -32,8 +34,6 @@ pub mod signal_spitter;
 pub mod signals;
 pub mod standing_cube_spitter;
 pub mod weighted_cube;
-pub mod button;
-pub mod discharge_gate;
 
 pub fn gameplay_plugins(app: &mut App) {
     app.add_plugins((

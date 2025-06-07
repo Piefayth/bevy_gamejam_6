@@ -1,6 +1,9 @@
 use std::time::Duration;
 
-use avian3d::prelude::{Collider, CollisionEventsEnabled, CollisionLayers, LockedAxes, RigidBody, RigidBodyColliders, SleepingDisabled};
+use avian3d::prelude::{
+    Collider, CollisionEventsEnabled, CollisionLayers, LockedAxes, RigidBody, RigidBodyColliders,
+    SleepingDisabled,
+};
 use bevy::prelude::*;
 use bevy_tween::{
     bevy_time_runner::TimeSpan,
@@ -10,16 +13,19 @@ use bevy_tween::{
 };
 
 use crate::{
-    asset_management::asset_tag_components::{Immobile, SignalSpitter}, game::player::Held, rendering::unlit_material::UnlitMaterial, GameState
+    asset_management::asset_tag_components::{Immobile, SignalSpitter},
+    game::player::Held,
+    rendering::unlit_material::UnlitMaterial,
+    GameState,
 };
 
 use super::{
-    DespawnOnFinish, GameLayer,
     pressure_plate::{POWER_ANIMATION_DURATION_SEC, POWER_MATERIAL_INTENSITY},
     signals::{
-        DirectSignal, MaterialIntensityInterpolator, Powered, SignalAfterDelay,
-        default_signal_collisions,
+        default_signal_collisions, DirectSignal, MaterialIntensityInterpolator, Powered,
+        SignalAfterDelay,
     },
+    DespawnOnFinish, GameLayer,
 };
 
 // Component to track continuous emission state
@@ -41,23 +47,24 @@ const STANDARD_SPIT_SIZE: f32 = 10.;
 
 pub fn signal_spitter_plugin(app: &mut App) {
     app.add_systems(FixedPreUpdate, (register_signal_spitter_signals,))
-        .add_systems(FixedUpdate, handle_continuous_signal_emission.run_if(in_state(GameState::Playing)));
+        .add_systems(
+            FixedUpdate,
+            handle_continuous_signal_emission.run_if(in_state(GameState::Playing)),
+        );
 }
 
-pub fn sink_when_not_held(
-    trigger: Trigger<OnRemove, Held>,
-    mut commands: Commands,
-) {
-    commands.entity(trigger.target()).insert((RigidBody::Dynamic, LockedAxes::ALL_LOCKED.unlock_translation_y()));
+pub fn sink_when_not_held(trigger: Trigger<OnRemove, Held>, mut commands: Commands) {
+    commands.entity(trigger.target()).insert((
+        RigidBody::Dynamic,
+        LockedAxes::ALL_LOCKED.unlock_translation_y(),
+    ));
 }
 
-pub fn dont_sink_when_held(
-    trigger: Trigger<OnAdd, Held>,
-    mut commands: Commands,
-) {
-    commands.entity(trigger.target()).insert(LockedAxes::ALL_LOCKED);
+pub fn dont_sink_when_held(trigger: Trigger<OnAdd, Held>, mut commands: Commands) {
+    commands
+        .entity(trigger.target())
+        .insert(LockedAxes::ALL_LOCKED);
 }
-
 
 fn signal_spitter_direct_signal(
     trigger: Trigger<DirectSignal>,
@@ -150,8 +157,7 @@ fn register_signal_spitter_signals(
         }
         commands
             .entity(spitter_entity)
-            .insert((ContinuousEmission::default(), 
-                        SleepingDisabled)) // Add continuous emission component
+            .insert((ContinuousEmission::default(), SleepingDisabled)) // Add continuous emission component
             .observe(signal_spitter_direct_signal)
             .observe(signal_spitter_receive_power)
             .observe(signal_spitter_lose_power)
@@ -164,7 +170,12 @@ fn signal_spitter_receive_power(
     trigger: Trigger<OnAdd, Powered>,
     mut commands: Commands,
     q_signal_spitter: Query<
-        (Entity, &RigidBodyColliders, &ContinuousEmission, Has<Immobile>),
+        (
+            Entity,
+            &RigidBodyColliders,
+            &ContinuousEmission,
+            Has<Immobile>,
+        ),
         With<SignalSpitter>,
     >,
     q_unlit_objects: Query<&MeshMaterial3d<UnlitMaterial>>,
@@ -285,7 +296,10 @@ fn signal_spitter_lose_power(
 
 fn handle_continuous_signal_emission(
     mut commands: Commands,
-    q_powered_spitters: Query<(Entity, &ContinuousEmission, Has<Immobile>), (With<SignalSpitter>, With<Powered>)>,
+    q_powered_spitters: Query<
+        (Entity, &ContinuousEmission, Has<Immobile>),
+        (With<SignalSpitter>, With<Powered>),
+    >,
     q_children: Query<&Children>,
     q_signal_after_delay: Query<(), With<SignalAfterDelay>>,
     time: Res<Time>,

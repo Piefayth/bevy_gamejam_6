@@ -1,8 +1,9 @@
 use std::time::Duration;
 
 use avian3d::prelude::{
-        Collider, CollisionEventsEnabled, CollisionLayers, LinearVelocity, RigidBody, RigidBodyColliders, RotationInterpolation, SleepingDisabled, TransformInterpolation
-    };
+    Collider, CollisionEventsEnabled, CollisionLayers, LinearVelocity, RigidBody,
+    RigidBodyColliders, RotationInterpolation, SleepingDisabled, TransformInterpolation,
+};
 use bevy::prelude::*;
 use bevy_tween::{
     bevy_time_runner::TimeSpan,
@@ -14,30 +15,28 @@ use bevy_tween::{
 use crate::{
     asset_management::{
         asset_loading::GameAssets,
-        asset_tag_components::{
-            Immobile, StandingCubeSpitter, WeightedCube, WeightedCubeColors
-        },
-    }, game::signal_spitter::{dont_sink_when_held, sink_when_not_held}, rendering::unlit_material::UnlitMaterial, GameState
+        asset_tag_components::{Immobile, StandingCubeSpitter, WeightedCube, WeightedCubeColors},
+    },
+    game::signal_spitter::{dont_sink_when_held, sink_when_not_held},
+    rendering::unlit_material::UnlitMaterial,
+    GameState,
 };
 
 use super::{
-    DespawnOnFinish, GameLayer,
     pressure_plate::{POWER_ANIMATION_DURATION_SEC, POWER_MATERIAL_INTENSITY},
     signals::{
-        DirectSignal, MaterialIntensityInterpolator, OwnedObjects, Powered,
-        default_signal_collisions,
+        default_signal_collisions, DirectSignal, MaterialIntensityInterpolator, OwnedObjects,
+        Powered,
     },
+    DespawnOnFinish, GameLayer,
 };
 
 pub fn standing_cube_spitter_plugin(app: &mut App) {
-    app.add_systems(
-        FixedPreUpdate,
-        (register_standing_cube_spitter_signals,),
-    )
-    .add_systems(
-        FixedLast,
-        (check_and_replace_cubes,).run_if(in_state(GameState::Playing)),
-    );
+    app.add_systems(FixedPreUpdate, (register_standing_cube_spitter_signals,))
+        .add_systems(
+            FixedLast,
+            (check_and_replace_cubes,).run_if(in_state(GameState::Playing)),
+        );
 }
 
 fn register_standing_cube_spitter_signals(
@@ -79,15 +78,15 @@ fn register_standing_cube_spitter_signals(
         }
         commands
             .entity(spitter_entity)
-            .insert((OwnedObjects::default(), 
-                        SleepingDisabled))
+            .insert((OwnedObjects::default(), SleepingDisabled))
             .observe(cube_spitter_direct_signal)
             .observe(cube_spitter_receive_power)
             .observe(cube_spitter_lose_power);
 
         if !is_immobile {
-            commands.entity(spitter_entity)
-                 .observe(sink_when_not_held)
+            commands
+                .entity(spitter_entity)
+                .observe(sink_when_not_held)
                 .observe(dont_sink_when_held);
         }
     }
@@ -105,8 +104,10 @@ fn check_and_replace_cubes(
 ) {
     for (spitter_transform, mut spitter_owned_objects) in &mut q_powered_spitters {
         // Remove any owned objects that no longer exist
-        spitter_owned_objects.0.retain(|&entity| q_existing_entities.contains(entity));
-        
+        spitter_owned_objects
+            .0
+            .retain(|&entity| q_existing_entities.contains(entity));
+
         // If no cubes exist, spawn a new one immediately
         if spitter_owned_objects.0.is_empty() {
             let cube_id = commands
@@ -185,7 +186,7 @@ fn cube_spitter_direct_signal(
                 ec.insert(Tombstone).despawn()
             }
         }
-        
+
         spitter_owned_objects.clear();
 
         let cube_id = commands
@@ -214,7 +215,10 @@ fn cube_spitter_direct_signal(
 fn cube_spitter_receive_power(
     trigger: Trigger<OnAdd, Powered>,
     mut commands: Commands,
-    mut q_spitter: Query<(&RigidBodyColliders, &GlobalTransform, &mut OwnedObjects), With<StandingCubeSpitter>>,
+    mut q_spitter: Query<
+        (&RigidBodyColliders, &GlobalTransform, &mut OwnedObjects),
+        With<StandingCubeSpitter>,
+    >,
     q_unlit_objects: Query<&MeshMaterial3d<UnlitMaterial>>,
     unlit_materials: Res<Assets<UnlitMaterial>>,
     q_tween: Query<(), With<TimeSpan>>,

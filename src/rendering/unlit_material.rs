@@ -1,14 +1,15 @@
+use crate::game::signals::MaterialIntensityInterpolator;
 use bevy::{
     pbr::{ExtendedMaterial, MaterialExtension},
     prelude::*,
     render::render_resource::{AsBindGroup, ShaderRef, ShaderType},
 };
-use bevy_tween::{asset_tween_system, prelude::Interpolator, tween::TargetAsset, BevyTweenRegisterSystems};
-use crate::game::signals::MaterialIntensityInterpolator;
+use bevy_tween::{
+    asset_tween_system, prelude::Interpolator, tween::TargetAsset, BevyTweenRegisterSystems,
+};
 
 pub fn unlit_material_plugin(app: &mut App) {
-    app
-        .add_plugins(MaterialPlugin::<UnlitMaterial>::default())
+    app.add_plugins(MaterialPlugin::<UnlitMaterial>::default())
         .register_type::<UnlitMaterial>()
         .register_type::<TargetAsset<UnlitMaterial>>()
         .register_asset_reflect::<UnlitMaterial>()
@@ -47,7 +48,7 @@ pub struct MaterialColorOverrideInterpolator {
 
 impl Interpolator for MaterialColorOverrideInterpolator {
     type Item = UnlitMaterial;
-    
+
     fn interpolate(&self, material: &mut Self::Item, progress: f32) {
         let invert_progress = 1.0 - progress;
         material.extension.params.blend_color = self.target_color;

@@ -6,13 +6,17 @@ use avian3d::prelude::{
 use bevy::{color::palettes::tailwind::PURPLE_300, prelude::*};
 
 use crate::{
-    asset_management::asset_tag_components::DissolveGate, game::{player::Held, standing_cube_spitter::Tombstone},
-    rendering::{test_material::{TestMaterial, TestMaterialExtension, TestMaterialParams}, unlit_material::UnlitMaterial},
+    asset_management::asset_tag_components::DissolveGate,
+    game::{player::Held, standing_cube_spitter::Tombstone},
+    rendering::{
+        test_material::{TestMaterial, TestMaterialExtension, TestMaterialParams},
+        unlit_material::UnlitMaterial,
+    },
 };
 
 use super::{
-    GameLayer,
     player::{Player, RightHand},
+    GameLayer,
 };
 
 pub fn dissolve_gate_plugin(app: &mut App) {
@@ -61,7 +65,10 @@ fn register_dissolve_gates(
                     .insert((
                         MeshMaterial3d(test_material),
                         CollisionEventsEnabled,
-                        CollisionLayers::new(GameLayer::Default, [GameLayer::Device, GameLayer::Player]),
+                        CollisionLayers::new(
+                            GameLayer::Default,
+                            [GameLayer::Device, GameLayer::Player],
+                        ),
                         Sensor,
                     ))
                     .observe(handle_dissolve_collisions);
@@ -108,10 +115,7 @@ pub fn handle_dissolve_collisions(
                     if let Ok(mut ec) = commands.get_entity(targeted_body.body) {
                         ec.insert(Tombstone).despawn();
 
-                        info!(
-                            "Dissolved entity {:?} despawned",
-                            targeted_body.body
-                        );
+                        info!("Dissolved entity {:?} despawned", targeted_body.body);
                     }
                 }
             }
@@ -137,11 +141,8 @@ pub fn handle_dissolve_collisions(
                         None => {
                             if let Ok(mut ec) = commands.get_entity(held_entity) {
                                 ec.insert(Tombstone).despawn();
-                                
-                                info!(
-                                    "Dissolved entity {:?} despawned",
-                                    held_entity
-                                );
+
+                                info!("Dissolved entity {:?} despawned", held_entity);
                             }
                         }
                     }

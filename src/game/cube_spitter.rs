@@ -1,7 +1,8 @@
 use std::time::Duration;
 
 use avian3d::prelude::{
-    CollisionEventsEnabled, CollisionLayers, LinearVelocity, RigidBody, RigidBodyColliders, RotationInterpolation, TransformInterpolation
+    CollisionEventsEnabled, CollisionLayers, LinearVelocity, RigidBody, RigidBodyColliders,
+    RotationInterpolation, TransformInterpolation,
 };
 use bevy::prelude::*;
 use bevy_tween::{
@@ -15,26 +16,27 @@ use crate::{
     asset_management::{
         asset_loading::GameAssets,
         asset_tag_components::{CubeSpitter, PermanentlyPowered, WeightedCube, WeightedCubeColors},
-    }, game::standing_cube_spitter::Tombstone, rendering::unlit_material::UnlitMaterial, GameState
+    },
+    game::standing_cube_spitter::Tombstone,
+    rendering::unlit_material::UnlitMaterial,
+    GameState,
 };
 
 use super::{
-    DespawnOnFinish, GameLayer,
     pressure_plate::{POWER_ANIMATION_DURATION_SEC, POWER_MATERIAL_INTENSITY},
     signals::{
-        DirectSignal, MaterialIntensityInterpolator, OwnedObjects, Powered, default_signal_collisions,
+        default_signal_collisions, DirectSignal, MaterialIntensityInterpolator, OwnedObjects,
+        Powered,
     },
+    DespawnOnFinish, GameLayer,
 };
 
 pub fn cube_spitter_plugin(app: &mut App) {
-    app.add_systems(
-        FixedPreUpdate,
-        register_cube_spitter_signals,
-    )
-    .add_systems(
-        FixedLast,
-        (check_and_replace_wall_cubes,).run_if(in_state(GameState::Playing)),
-    );
+    app.add_systems(FixedPreUpdate, register_cube_spitter_signals)
+        .add_systems(
+            FixedLast,
+            (check_and_replace_wall_cubes,).run_if(in_state(GameState::Playing)),
+        );
 }
 
 // New system to check if powered wall spitters need cube replacement
@@ -49,8 +51,10 @@ fn check_and_replace_wall_cubes(
 ) {
     for (spitter, spitter_transform, mut spitter_owned_objects) in &mut q_powered_spitters {
         // Remove any owned objects that no longer exist
-        spitter_owned_objects.0.retain(|&entity| q_existing_entities.contains(entity));
-        
+        spitter_owned_objects
+            .0
+            .retain(|&entity| q_existing_entities.contains(entity));
+
         // If no cubes exist, spawn a new one immediately
         if spitter_owned_objects.0.is_empty() {
             let cube_id = commands
@@ -160,7 +164,10 @@ pub fn cube_spitter_direct_signal(
 fn cube_spitter_receive_power(
     trigger: Trigger<OnAdd, Powered>,
     mut commands: Commands,
-    mut q_spitter: Query<(&Children, &CubeSpitter, &Transform, &mut OwnedObjects), With<CubeSpitter>>,
+    mut q_spitter: Query<
+        (&Children, &CubeSpitter, &Transform, &mut OwnedObjects),
+        With<CubeSpitter>,
+    >,
     q_unlit_objects: Query<&MeshMaterial3d<UnlitMaterial>>,
     unlit_materials: Res<Assets<UnlitMaterial>>,
     q_tween: Query<(), With<TimeSpan>>,
@@ -295,7 +302,10 @@ fn register_cube_spitter_signals(
             .observe(cube_spitter_lose_power);
 
         if is_permanently_powered {
-            commands.entity(spitter_entity).insert(Powered).remove::<PermanentlyPowered>();
+            commands
+                .entity(spitter_entity)
+                .insert(Powered)
+                .remove::<PermanentlyPowered>();
         }
 
         for spitter_child in spitter_children.iter() {
@@ -304,13 +314,13 @@ fn register_cube_spitter_signals(
                 .insert((
                     CollisionEventsEnabled,
                     CollisionLayers::new(
-                        GameLayer::Device, 
+                        GameLayer::Device,
                         [
                             GameLayer::Device,
-                            GameLayer::Signal, 
+                            GameLayer::Signal,
                             GameLayer::Player,
                             GameLayer::Default,
-                        ]
+                        ],
                     ),
                     AnimationTarget,
                 ))

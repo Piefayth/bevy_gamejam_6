@@ -9,13 +9,14 @@ use bevy_tween::{
 };
 
 use crate::{
-    asset_management::asset_tag_components::Inert, rendering::unlit_material::{MaterialColorOverrideInterpolator, UnlitMaterial},
+    asset_management::asset_tag_components::Inert,
+    rendering::unlit_material::{MaterialColorOverrideInterpolator, UnlitMaterial},
 };
 
 use super::{
-    DespawnOnFinish, GameLayer,
     pressure_plate::{POWER_ANIMATION_DURATION_SEC, POWER_MATERIAL_INTENSITY},
-    signals::{DirectSignal, MaterialIntensityInterpolator, default_signal_collisions},
+    signals::{default_signal_collisions, DirectSignal, MaterialIntensityInterpolator},
+    DespawnOnFinish, GameLayer,
 };
 
 pub fn inert_plugin(app: &mut App) {

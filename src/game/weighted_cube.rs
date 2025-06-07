@@ -1,7 +1,8 @@
 use std::time::Duration;
 
 use avian3d::prelude::{
-    Collider, ColliderOf, CollisionEventsEnabled, CollisionLayers, OnCollisionStart, RigidBodyColliders, SleepingDisabled, SpatialQuery, SpatialQueryFilter,
+    Collider, ColliderOf, CollisionEventsEnabled, CollisionLayers, OnCollisionStart,
+    RigidBodyColliders, SleepingDisabled, SpatialQuery, SpatialQueryFilter,
 };
 use bevy::prelude::*;
 use bevy_tween::{
@@ -12,16 +13,18 @@ use bevy_tween::{
 };
 
 use crate::{
-    asset_management::asset_tag_components::{Inert, WeightedCube}, rendering::unlit_material::UnlitMaterial, GameState
+    asset_management::asset_tag_components::{Inert, WeightedCube},
+    rendering::unlit_material::UnlitMaterial,
+    GameState,
 };
 
 use super::{
-    DespawnOnFinish, GameLayer,
     door::PoweredTimer,
     player::Held,
-    pressure_plate::{POWER_ANIMATION_DURATION_SEC, POWER_MATERIAL_INTENSITY, PoweredBy},
+    pressure_plate::{PoweredBy, POWER_ANIMATION_DURATION_SEC, POWER_MATERIAL_INTENSITY},
     signals::{DirectSignal, MaterialIntensityInterpolator, Powered, Signal},
     standing_cube_spitter::Tombstone,
+    DespawnOnFinish, GameLayer,
 };
 
 #[derive(Component)]

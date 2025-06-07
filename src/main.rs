@@ -1,12 +1,18 @@
 use asset_management::asset_plugins;
-use avian3d::prelude::{Collider, CollisionLayers, PhysicsGizmos, RigidBody, RigidBodyDisabled, RotationInterpolation};
+use avian3d::prelude::{
+    Collider, CollisionLayers, PhysicsGizmos, RigidBody, RigidBodyDisabled, RotationInterpolation,
+};
 use bevy::{
-    color::palettes::{css::{GREEN, MAGENTA}, tailwind::CYAN_400},
+    color::palettes::{
+        css::{GREEN, MAGENTA},
+        tailwind::CYAN_400,
+    },
     core_pipeline::{
         bloom::{Bloom, BloomPrefilter},
         fxaa::Fxaa,
     },
-    prelude::*, text::FontSmoothing,
+    prelude::*,
+    text::FontSmoothing,
 };
 #[cfg(feature = "dev")]
 use bevy_dev_tools::fps_overlay::{FpsOverlayConfig, FpsOverlayPlugin};
@@ -73,7 +79,10 @@ fn main() -> AppExit {
             GizmoConfig::default(),
         )
         .add_systems(Startup, spawn_main_camera)
-        .add_systems(FixedPreUpdate, (collider_distance_system, rigid_body_distance_system))
+        .add_systems(
+            FixedPreUpdate,
+            (collider_distance_system, rigid_body_distance_system),
+        )
         .init_resource::<RigidBodyDistanceConfig>()
         .init_resource::<ColliderDistanceConfig>()
         .run()
@@ -202,7 +211,12 @@ pub fn collider_distance_system(
     config: Res<ColliderDistanceConfig>,
     player_query: Query<&GlobalTransform, With<Player>>,
     mut collider_query: Query<
-        (Entity, &GlobalTransform, Option<&OldCollisionLayers>, Option<&CollisionLayers>),
+        (
+            Entity,
+            &GlobalTransform,
+            Option<&OldCollisionLayers>,
+            Option<&CollisionLayers>,
+        ),
         (With<Collider>, Without<Player>),
     >,
 ) {
@@ -214,7 +228,9 @@ pub fn collider_distance_system(
 
     let player_pos = player_transform.translation();
 
-    for (entity, transform, maybe_old_collision_layers, maybe_collision_layers) in collider_query.iter_mut() {
+    for (entity, transform, maybe_old_collision_layers, maybe_collision_layers) in
+        collider_query.iter_mut()
+    {
         let distance = player_pos.distance(transform.translation());
         let is_disabled = maybe_old_collision_layers.is_some();
 
@@ -223,7 +239,8 @@ pub fn collider_distance_system(
             (true, true) => {
                 if let Some(old_layers) = maybe_old_collision_layers {
                     // Restore original collision layers
-                    commands.entity(entity)
+                    commands
+                        .entity(entity)
                         .insert(old_layers.0)
                         .remove::<OldCollisionLayers>();
                 }
@@ -232,7 +249,8 @@ pub fn collider_distance_system(
             (false, false) if distance > config.max_distance + config.hysteresis => {
                 if let Some(current_layers) = maybe_collision_layers {
                     // Store current layers and set to NONE
-                    commands.entity(entity)
+                    commands
+                        .entity(entity)
                         .insert((CollisionLayers::NONE, OldCollisionLayers(*current_layers)));
                 }
             }

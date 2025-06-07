@@ -7,8 +7,8 @@ use crate::rendering::{section_color_prepass::DrawSection, test_material::test_m
 
 pub mod section_color_postprocess;
 pub mod section_color_prepass;
-pub mod unlit_material;
 pub mod test_material;
+pub mod unlit_material;
 
 pub fn render_plugins(app: &mut App) {
     app.add_plugins((
@@ -17,5 +17,5 @@ pub fn render_plugins(app: &mut App) {
         unlit_material_plugin,
         test_material_plugin,
     ));
-          app.register_type::<DrawSection>();
+    app.register_type::<DrawSection>();
 }

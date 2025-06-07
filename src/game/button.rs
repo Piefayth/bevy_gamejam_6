@@ -2,7 +2,12 @@ use std::time::Duration;
 
 use avian3d::prelude::{ColliderOf, RigidBody};
 use bevy::prelude::*;
-use bevy_tween::{bevy_time_runner::TimeSpan, combinator::{sequence, tween}, prelude::{AnimationBuilderExt, EaseKind}, tween::{AnimationTarget, TargetAsset}};
+use bevy_tween::{
+    bevy_time_runner::TimeSpan,
+    combinator::{sequence, tween},
+    prelude::{AnimationBuilderExt, EaseKind},
+    tween::{AnimationTarget, TargetAsset},
+};
 
 use crate::{
     asset_management::asset_tag_components::{Door, PowerButton},
@@ -10,7 +15,11 @@ use crate::{
     rendering::unlit_material::UnlitMaterial,
 };
 
-use super::{interaction::Interacted, pressure_plate::{POWER_ANIMATION_DURATION_SEC, POWER_MATERIAL_INTENSITY}, signals::MaterialIntensityInterpolator};
+use super::{
+    interaction::Interacted,
+    pressure_plate::{POWER_ANIMATION_DURATION_SEC, POWER_MATERIAL_INTENSITY},
+    signals::MaterialIntensityInterpolator,
+};
 
 pub fn button_plugin(app: &mut App) {
     app.add_systems(FixedPreUpdate, register_buttons)
@@ -32,7 +41,7 @@ fn register_buttons(
     mut unlit_materials: ResMut<Assets<UnlitMaterial>>,
     q_unlit_objects: Query<&MeshMaterial3d<UnlitMaterial>>,
     q_children: Query<&Children>,
-    q_doors: Query<&Door>, 
+    q_doors: Query<&Door>,
 ) {
     for (button_entity, button_children, button_child_of) in &q_new_button {
         if let Ok(parent_children) = q_children.get(button_child_of.parent()) {
@@ -88,33 +97,30 @@ pub fn button_pressed(
 
                 // Add the button press animation
                 if let Ok(material_handle) = q_unlit_objects.get(button_child) {
-                    commands
-                        .entity(button_child)
-                        .animation()
-                        .insert(sequence((
-                            // Flash bright when pressed
-                            tween(
-                                Duration::from_millis((POWER_ANIMATION_DURATION_SEC * 500.) as u64),
-                                EaseKind::CubicOut,
-                                TargetAsset::Asset(material_handle.clone_weak()).with(
-                                    MaterialIntensityInterpolator {
-                                        start: 1.0,
-                                        end: POWER_MATERIAL_INTENSITY,
-                                    },
-                                ),
+                    commands.entity(button_child).animation().insert(sequence((
+                        // Flash bright when pressed
+                        tween(
+                            Duration::from_millis((POWER_ANIMATION_DURATION_SEC * 500.) as u64),
+                            EaseKind::CubicOut,
+                            TargetAsset::Asset(material_handle.clone_weak()).with(
+                                MaterialIntensityInterpolator {
+                                    start: 1.0,
+                                    end: POWER_MATERIAL_INTENSITY,
+                                },
                             ),
-                            // Return to normal
-                            tween(
-                                Duration::from_millis((POWER_ANIMATION_DURATION_SEC * 500.) as u64),
-                                EaseKind::CubicOut,
-                                TargetAsset::Asset(material_handle.clone_weak()).with(
-                                    MaterialIntensityInterpolator {
-                                        start: POWER_MATERIAL_INTENSITY,
-                                        end: 1.0,
-                                    },
-                                ),
+                        ),
+                        // Return to normal
+                        tween(
+                            Duration::from_millis((POWER_ANIMATION_DURATION_SEC * 500.) as u64),
+                            EaseKind::CubicOut,
+                            TargetAsset::Asset(material_handle.clone_weak()).with(
+                                MaterialIntensityInterpolator {
+                                    start: POWER_MATERIAL_INTENSITY,
+                                    end: 1.0,
+                                },
                             ),
-                        )));
+                        ),
+                    )));
                 }
             }
 
@@ -136,11 +142,11 @@ fn update_delayed_signals(
 ) {
     for (timer_entity, mut delayed_signal) in &mut q_delayed_signals {
         delayed_signal.timer.tick(time.delta());
-        
+
         if delayed_signal.timer.finished() {
             // Send the DirectSignal
             commands.entity(delayed_signal.target).trigger(DirectSignal);
-            
+
             // Remove the timer entity
             commands.entity(timer_entity).try_despawn();
         }

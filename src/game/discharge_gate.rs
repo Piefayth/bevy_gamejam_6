@@ -6,13 +6,17 @@ use avian3d::prelude::{
 use bevy::{color::palettes::tailwind::ORANGE_300, prelude::*, render::view::NoFrustumCulling};
 
 use crate::{
-    asset_management::asset_tag_components::DischargeGate, game::signals::Powered,
-    rendering::{test_material::{TestMaterial, TestMaterialExtension, TestMaterialParams}, unlit_material::UnlitMaterial},
+    asset_management::asset_tag_components::DischargeGate,
+    game::signals::Powered,
+    rendering::{
+        test_material::{TestMaterial, TestMaterialExtension, TestMaterialParams},
+        unlit_material::UnlitMaterial,
+    },
 };
 
 use super::{
-    GameLayer,
     player::{Player, RightHand},
+    GameLayer,
 };
 
 pub fn discharge_gate_plugin(app: &mut App) {
@@ -50,9 +54,12 @@ fn register_discharge_gates(
                     .insert((
                         MeshMaterial3d(test_material),
                         CollisionEventsEnabled,
-                        CollisionLayers::new(GameLayer::Default, [GameLayer::Device, GameLayer::Player]),
+                        CollisionLayers::new(
+                            GameLayer::Default,
+                            [GameLayer::Device, GameLayer::Player],
+                        ),
                         Sensor,
-                        NoFrustumCulling 
+                        NoFrustumCulling,
                     ))
                     .observe(handle_discharge_collisions);
             }

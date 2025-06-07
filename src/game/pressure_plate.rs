@@ -8,7 +8,7 @@ use crate::{
     GameState,
 };
 use avian3d::prelude::*;
-use bevy::{prelude::*};
+use bevy::prelude::*;
 use bevy_tween::{
     bevy_time_runner::TimeSpan,
     combinator::tween,

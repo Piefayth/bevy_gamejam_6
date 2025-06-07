@@ -1,5 +1,10 @@
 use bevy::prelude::*;
-use bevy_enhanced_input::{input::Input, prelude::{Actions, Binding, InputAction, InputContext, InputContextAppExt}, preset::Cardinal, EnhancedInputPlugin};
+use bevy_enhanced_input::{
+    input::Input,
+    prelude::{Actions, Binding, InputAction, InputContext, InputContextAppExt},
+    preset::Cardinal,
+    EnhancedInputPlugin,
+};
 
 pub struct UpdateInputContext;
 impl InputContext for UpdateInputContext {
@@ -12,8 +17,7 @@ impl InputContext for FixedInputContext {
 }
 
 pub fn input_plugin(app: &mut App) {
-    app
-        .add_plugins(EnhancedInputPlugin)
+    app.add_plugins(EnhancedInputPlugin)
         // .add_plugins(MeshPickingPlugin)
         // .insert_resource(MeshPickingSettings {
         //     require_markers: true,
@@ -25,7 +29,6 @@ pub fn input_plugin(app: &mut App) {
         .add_observer(fixed_update_input_binding)
         .add_systems(Startup, spawn_input_manager);
 }
-
 
 #[derive(Debug, InputAction)]
 #[input_action(output = bool)]
@@ -62,8 +65,7 @@ fn update_input_binding(
     if let Ok(mut actions) = q_update_input_manager.get_mut(trigger.target()) {
         actions.bind::<SystemMenuOrCancel>().to(KeyCode::Escape);
 
-        actions.bind::<Look>()
-            .to(Input::mouse_motion());
+        actions.bind::<Look>().to(Input::mouse_motion());
     }
 }
 
@@ -72,11 +74,9 @@ fn fixed_update_input_binding(
     mut q_fixed_input_manager: Query<&mut Actions<FixedInputContext>>,
 ) {
     if let Ok(mut actions) = q_fixed_input_manager.get_mut(trigger.target()) {
-        actions.bind::<Movement>()
-            .to(Cardinal::wasd_keys());
-        
-        actions.bind::<Jump>()
-            .to(KeyCode::Space);
+        actions.bind::<Movement>().to(Cardinal::wasd_keys());
+
+        actions.bind::<Jump>().to(KeyCode::Space);
 
         actions.bind::<UseInteract>().to(MouseButton::Left);
     }
