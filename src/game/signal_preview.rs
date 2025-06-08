@@ -1,14 +1,14 @@
-use std::collections::HashSet;
-use avian3d::prelude::{Collider, ShapeCastConfig, SpatialQuery, SpatialQueryFilter};
-use bevy::prelude::*;
 use crate::{
     asset_management::asset_tag_components::{Immobile, SignalSpitter},
     game::{
         player::{Held, RightHand},
-        signals::MAX_SIGNAL_TRAVEL_DIST, GameLayer,
+        GameLayer,
     },
     rendering::unlit_material::UnlitMaterial,
 };
+use avian3d::prelude::{Collider, ShapeCastConfig, SpatialQuery, SpatialQueryFilter};
+use bevy::prelude::*;
+use std::collections::HashSet;
 
 const IMMOBILE_SPIT_SIZE: f32 = 30.;
 const STANDARD_SPIT_SIZE: f32 = 10.;
@@ -26,7 +26,7 @@ pub fn signal_preview_plugin(app: &mut App) {
             update_signal_preview,
             cleanup_signal_preview_on_drop,
             cleanup_signal_preview_on_invalid_placement,
-            initialize_signal_preview
+            initialize_signal_preview,
         ),
     );
 }
@@ -35,7 +35,7 @@ fn update_signal_preview(
     spatial_query: SpatialQuery,
     mut q_held_spitters: Query<
         (Entity, &mut SignalPreview, &GlobalTransform, Has<Immobile>),
-        (With<SignalSpitter>, With<Held>)
+        (With<SignalSpitter>, With<Held>),
     >,
     q_unlit_materials: Query<&MeshMaterial3d<UnlitMaterial>>,
     mut unlit_materials: ResMut<Assets<UnlitMaterial>>,
@@ -58,19 +58,15 @@ fn update_signal_preview(
         // Calculate signal spawn position and direction
         let y_offset = if signal_size > 10. { 20. } else { 10. };
         let spitter_forward = -spitter_transform.forward();
-        let signal_start = spitter_transform.translation() 
-            + Vec3::Y * y_offset 
-            + spitter_forward * 10.;
+        let signal_start =
+            spitter_transform.translation() + Vec3::Y * y_offset + spitter_forward * 10.;
 
         // Create shape for the signal path
         let signal_shape = Collider::cuboid(signal_size, signal_size, SIGNAL_SHAPE_DEPTH);
-        
-        // Calculate how far the signal travels over its lifetime
-        let total_distance = MAX_SIGNAL_TRAVEL_DIST;
-        
+
         // Draw visualization of the cast
         let cast_rotation = Quat::from_rotation_arc(Vec3::NEG_Z, spitter_forward.into());
-        
+
         // // Draw the starting position of the signal
         // gizmos.cuboid(
         //     Transform::from_translation(signal_start)
@@ -78,7 +74,7 @@ fn update_signal_preview(
         //         .with_scale(Vec3::new(signal_size, signal_size, SIGNAL_SHAPE_DEPTH)),
         //     Color::srgba(0.0, 1.0, 1.0, 0.3), // Cyan, semi-transparent
         // );
-        
+
         // // Draw the cast direction as a line
         // gizmos.line(
         //     signal_start,
@@ -88,7 +84,7 @@ fn update_signal_preview(
 
         // Perform single shapecast along the signal path
         let mut new_highlighted = HashSet::new();
-        
+
         // Cast the shape along the path to find the first hit
         if let Some(hit_info) = spatial_query.cast_shape(
             &signal_shape,
@@ -96,45 +92,45 @@ fn update_signal_preview(
             cast_rotation,
             Dir3::new(spitter_forward.into()).unwrap(),
             &ShapeCastConfig::default(),
-            &SpatialQueryFilter::default().with_mask([GameLayer::Device])
+            &SpatialQueryFilter::default().with_mask([GameLayer::Device]),
         ) {
-    let hit_distance = hit_info.distance;
-    let hit_position = signal_start + spitter_forward * hit_distance;
-    
-    // Always include the entity that was actually hit by the cast
-    new_highlighted.insert(hit_info.entity);
-    
-    // Make the intersection query more robust - try multiple approaches:
-    
-    // Approach 1: Slightly larger shape for intersection
-    let expanded_shape = Collider::cuboid(
-        signal_size + 0.1, 
-        signal_size + 0.1, 
-        SIGNAL_SHAPE_DEPTH + 0.1
-    );
-    
-    let entities_at_hit = spatial_query.shape_intersections(
-        &expanded_shape,  // Slightly larger shape
-        hit_position,
-        cast_rotation,
-        &SpatialQueryFilter::default().with_mask([GameLayer::Device])
-    );
-    
-    for entity in entities_at_hit {
-        new_highlighted.insert(entity);
-    }
-    
-    // Approach 2: Also check a small area around the hit point
-    let nearby_entities = spatial_query.shape_intersections(
-        &signal_shape,
-        hit_position + Vec3::new(0.1, 0.0, 0.0), // Slight offset
-        cast_rotation,
-        &SpatialQueryFilter::default().with_mask([GameLayer::Device])
-    );
-    
-    for entity in nearby_entities {
-        new_highlighted.insert(entity);
-    }
+            let hit_distance = hit_info.distance;
+            let hit_position = signal_start + spitter_forward * hit_distance;
+
+            // Always include the entity that was actually hit by the cast
+            new_highlighted.insert(hit_info.entity);
+
+            // Make the intersection query more robust - try multiple approaches:
+
+            // Approach 1: Slightly larger shape for intersection
+            let expanded_shape = Collider::cuboid(
+                signal_size + 0.1,
+                signal_size + 0.1,
+                SIGNAL_SHAPE_DEPTH + 0.1,
+            );
+
+            let entities_at_hit = spatial_query.shape_intersections(
+                &expanded_shape, // Slightly larger shape
+                hit_position,
+                cast_rotation,
+                &SpatialQueryFilter::default().with_mask([GameLayer::Device]),
+            );
+
+            for entity in entities_at_hit {
+                new_highlighted.insert(entity);
+            }
+
+            // Approach 2: Also check a small area around the hit point
+            let nearby_entities = spatial_query.shape_intersections(
+                &signal_shape,
+                hit_position + Vec3::new(0.1, 0.0, 0.0), // Slight offset
+                cast_rotation,
+                &SpatialQueryFilter::default().with_mask([GameLayer::Device]),
+            );
+
+            for entity in nearby_entities {
+                new_highlighted.insert(entity);
+            }
         } else {
             // No hit - draw the full path in a different color
             // gizmos.cuboid(

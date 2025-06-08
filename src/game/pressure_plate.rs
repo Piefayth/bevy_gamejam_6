@@ -332,14 +332,12 @@ fn update_pressure_plate_overlaps(
             &GlobalTransform,
             &mut PressurePlateDetector,
             &Children,
-            Option<&Powers>,
         ),
         With<PressurePlate>,
     >,
     spatial_query: SpatialQuery,
-    q_charge_pad_detectors: Query<&ChargePadDetector>,
 ) {
-    for (plate_entity, plate_transform, mut detector, plate_children, maybe_powers) in q_plates.iter_mut() {
+    for (plate_entity, plate_transform, mut detector, plate_children) in q_plates.iter_mut() {
         let mut current_overlaps = HashSet::new();
 
         // Calculate detection box center
@@ -384,7 +382,6 @@ fn update_pressure_plate_overlaps(
             detector.is_pressed = false;
             commands.trigger_targets(PressurePlateReleased { plate_entity }, plate_entity);
         }
-
     }
 }
 

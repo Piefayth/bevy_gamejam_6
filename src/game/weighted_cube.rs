@@ -59,7 +59,15 @@ pub fn cube_plugin(app: &mut App) {
 
 fn cube_discharge_detection(
     mut commands: Commands,
-    q_cubes: Query<(Entity, &GlobalTransform), (With<WeightedCube>, With<Powered>, Without<Held>, Without<PoweringUp>)>,
+    q_cubes: Query<
+        (Entity, &GlobalTransform),
+        (
+            With<WeightedCube>,
+            With<Powered>,
+            Without<Held>,
+            Without<PoweringUp>,
+        ),
+    >,
     spatial_query: SpatialQuery,
     q_collider_of: Query<&ColliderOf>,
     q_discharging: Query<(), With<CubeDischarge>>,
@@ -180,7 +188,10 @@ fn cube_direct_signal(
 
 fn cube_receive_power(
     mut commands: Commands,
-    q_powered_cube: Query<(Entity, &RigidBodyColliders, Has<PoweredBy>), (With<WeightedCube>, Added<Powered>, Without<Tombstone>)>,
+    q_powered_cube: Query<
+        (Entity, &RigidBodyColliders, Has<PoweredBy>),
+        (With<WeightedCube>, Added<Powered>, Without<Tombstone>),
+    >,
     q_unlit_objects: Query<&MeshMaterial3d<UnlitMaterial>>,
     unlit_materials: Res<Assets<UnlitMaterial>>,
     q_tween: Query<(), With<TimeSpan>>,

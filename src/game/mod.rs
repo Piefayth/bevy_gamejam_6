@@ -30,11 +30,11 @@ pub mod input;
 pub mod interaction;
 pub mod player;
 pub mod pressure_plate;
+pub mod signal_preview;
 pub mod signal_spitter;
 pub mod signals;
 pub mod standing_cube_spitter;
 pub mod weighted_cube;
-pub mod signal_preview;
 
 pub fn gameplay_plugins(app: &mut App) {
     app.add_plugins((
@@ -53,11 +53,7 @@ pub fn gameplay_plugins(app: &mut App) {
         cube_plugin,
         standing_cube_spitter_plugin,
     ))
-    .add_plugins((
-        button_plugin,
-        discharge_gate_plugin,
-        signal_preview_plugin
-    ))
+    .add_plugins((button_plugin, discharge_gate_plugin, signal_preview_plugin))
     .insert_resource(Gravity(Vec3::NEG_Y * 19.6));
 
     app.add_systems(

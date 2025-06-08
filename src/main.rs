@@ -1,6 +1,6 @@
 use asset_management::asset_plugins;
 use avian3d::prelude::{
-    Collider, CollisionLayers, PhysicsGizmos, RigidBody, RigidBodyDisabled, RotationInterpolation
+    Collider, CollisionLayers, PhysicsGizmos, RigidBody, RigidBodyDisabled, RotationInterpolation,
 };
 #[cfg(feature = "dev")]
 use bevy::color::palettes::css::GREEN;
@@ -241,8 +241,11 @@ pub fn collider_distance_system(
                 *layers = marker.old_layers;
                 commands.entity(entity).remove::<DisabledByDistance>();
             }
-        }
-        else if should_be_disabled && !is_currently_disabled_by_us && *layers != CollisionLayers::NONE && *layers != CollisionLayers::DEFAULT {
+        } else if should_be_disabled
+            && !is_currently_disabled_by_us
+            && *layers != CollisionLayers::NONE
+            && *layers != CollisionLayers::DEFAULT
+        {
             commands.entity(entity).insert(DisabledByDistance {
                 old_layers: *layers,
             });
