@@ -104,18 +104,12 @@ pub fn handle_dissolve_collisions(
                     // Respawn the entity at the specified transform
                     commands
                         .entity(targeted_body.body)
-                        .insert(*respawn_transform);
-                    info!(
-                        "Dissolved entity {:?} respawned at {:?}",
-                        targeted_body.body, respawn_transform
-                    );
+                        .try_insert(*respawn_transform);
                 }
                 None => {
                     // Despawn the entity
                     if let Ok(mut ec) = commands.get_entity(targeted_body.body) {
-                        ec.insert(Tombstone).despawn();
-
-                        info!("Dissolved entity {:?} despawned", targeted_body.body);
+                        ec.try_insert(Tombstone).despawn();
                     }
                 }
             }
@@ -131,7 +125,7 @@ pub fn handle_dissolve_collisions(
                             // Respawn the held entity at the specified transform and remove Held component
                             commands
                                 .entity(held_entity)
-                                .insert(*respawn_transform)
+                                .try_insert(*respawn_transform)
                                 .remove::<Held>();
                             info!(
                                 "Dissolved held entity {:?} respawned at {:?}",
@@ -140,7 +134,7 @@ pub fn handle_dissolve_collisions(
                         }
                         None => {
                             if let Ok(mut ec) = commands.get_entity(held_entity) {
-                                ec.insert(Tombstone).despawn();
+                                ec.try_insert(Tombstone).despawn();
 
                                 info!("Dissolved entity {:?} despawned", held_entity);
                             }

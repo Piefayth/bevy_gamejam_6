@@ -22,7 +22,6 @@ fn spawn_main_menu(
     game_assets: Res<GameAssets>,
     player: Single<Entity, With<Player>>,
 ) {
-    println!("le spawn le main menu le meow");
     commands.entity(*player).insert(RigidBodyDisabled);
     let player_id = *player;
     commands
