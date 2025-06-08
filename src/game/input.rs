@@ -64,6 +64,7 @@ fn update_input_binding(
 ) {
     if let Ok(mut actions) = q_update_input_manager.get_mut(trigger.target()) {
         actions.bind::<SystemMenuOrCancel>().to(KeyCode::Escape);
+        actions.bind::<SystemMenuOrCancel>().to(KeyCode::Tab);
 
         actions.bind::<Look>().to(Input::mouse_motion());
     }
