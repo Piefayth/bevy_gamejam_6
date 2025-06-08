@@ -18,6 +18,7 @@ use super::asset_tag_components::{
 pub(crate) fn assets_plugin(app: &mut App) {
     app.init_state::<AssetLoaderState>()
         .init_resource::<GameAssets>()
+        .init_resource::<GameSounds>()
         .add_systems(
             Update,
             (
@@ -56,12 +57,23 @@ pub struct GameAssets {
     pub font: Handle<Font>,
 }
 
+#[derive(Resource, Default)]
+pub struct GameSounds {
+    pub song: Handle<AudioSource>,
+    pub button1: Handle<AudioSource>,
+    pub button2: Handle<AudioSource>,
+    pub door_open: Handle<AudioSource>,
+    pub pressure_plate_up: Handle<AudioSource>,
+    pub pressure_plate_down: Handle<AudioSource>,
+}
+
 #[derive(Component)]
 pub struct LoadingAsset(pub UntypedHandle);
 
 fn on_start_loading(
     mut commands: Commands,
     mut game_assets: ResMut<GameAssets>,
+    mut game_sounds: ResMut<GameSounds>,
     asset_server: Res<AssetServer>,
     mut unlit_materials: ResMut<Assets<UnlitMaterial>>,
 ) {
@@ -95,6 +107,24 @@ fn on_start_loading(
         },
     });
 
+    game_sounds.song = asset_server.load("sounds/bevyjam6songfix.mp3");
+    commands.spawn(LoadingAsset(game_sounds.song.clone().into()));
+    
+    game_sounds.button1 = asset_server.load("sounds/button1.mp3");
+    commands.spawn(LoadingAsset(game_sounds.button1.clone().into()));
+    
+    game_sounds.button2 = asset_server.load("sounds/button2.mp3");
+    commands.spawn(LoadingAsset(game_sounds.button2.clone().into()));
+    
+    game_sounds.door_open = asset_server.load("sounds/door_open.mp3");
+    commands.spawn(LoadingAsset(game_sounds.door_open.clone().into()));
+    
+    game_sounds.pressure_plate_up = asset_server.load("sounds/pressure_plate_up.mp3");
+    commands.spawn(LoadingAsset(game_sounds.pressure_plate_up.clone().into()));
+    
+    game_sounds.pressure_plate_down = asset_server.load("sounds/pressure_plate_down.mp3");
+    commands.spawn(LoadingAsset(game_sounds.pressure_plate_down.clone().into()));
+    
     commands.set_state(AssetLoaderState::Loading);
 }
 

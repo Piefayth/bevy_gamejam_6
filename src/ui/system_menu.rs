@@ -3,9 +3,7 @@ use bevy::prelude::*;
 use crate::{
     asset_management::asset_loading::GameAssets,
     game::{
-        dissolve_gate::Dissolveable,
-        player::{Held, Player, PlayerSpawnPoint, RightHand},
-        standing_cube_spitter::Tombstone,
+        audio::{handle_volume_down, handle_volume_up}, dissolve_gate::Dissolveable, player::{Held, Player, PlayerSpawnPoint, RightHand}, standing_cube_spitter::Tombstone
     },
     ui::crosshair::CrosshairState,
 };
@@ -83,7 +81,7 @@ fn spawn_system_menu(
                     child_spawner
                         .commands()
                         .entity(text_entity)
-                        .observe(move |_trigger: Trigger<Pointer<Click>>, _commands: Commands| {})
+                        .observe(handle_volume_up)
                         .observe(
                             move |_trigger: Trigger<Pointer<Over>>,
                                   mut text_query: Query<&mut Text>| {
@@ -115,7 +113,7 @@ fn spawn_system_menu(
                     child_spawner
                         .commands()
                         .entity(text_entity)
-                        .observe(move |_trigger: Trigger<Pointer<Click>>, _commands: Commands| {})
+                        .observe(handle_volume_down)
                         .observe(
                             move |_trigger: Trigger<Pointer<Over>>,
                                   mut text_query: Query<&mut Text>| {

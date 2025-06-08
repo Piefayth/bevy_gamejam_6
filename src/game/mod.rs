@@ -18,8 +18,12 @@ use signals::signals_plugin;
 use standing_cube_spitter::standing_cube_spitter_plugin;
 use weighted_cube::cube_plugin;
 
-use crate::game::{discharge_gate::discharge_gate_plugin, signal_preview::signal_preview_plugin};
+use crate::game::{
+    audio::audio_plugin, discharge_gate::discharge_gate_plugin,
+    signal_preview::signal_preview_plugin,
+};
 
+pub mod audio;
 pub mod button;
 pub mod cube_spitter;
 pub mod discharge_gate;
@@ -53,7 +57,12 @@ pub fn gameplay_plugins(app: &mut App) {
         cube_plugin,
         standing_cube_spitter_plugin,
     ))
-    .add_plugins((button_plugin, discharge_gate_plugin, signal_preview_plugin))
+    .add_plugins((
+        button_plugin,
+        discharge_gate_plugin,
+        signal_preview_plugin,
+        audio_plugin,
+    ))
     .insert_resource(Gravity(Vec3::NEG_Y * 19.6));
 
     app.add_systems(
