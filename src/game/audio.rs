@@ -1,5 +1,5 @@
-use bevy::{audio::Volume, prelude::*};
 use crate::asset_management::asset_loading::GameSounds;
+use bevy::{audio::Volume, prelude::*};
 
 #[derive(Resource)]
 pub struct AudioSettings {

@@ -3,7 +3,10 @@ use bevy::prelude::*;
 use crate::{
     asset_management::asset_loading::GameAssets,
     game::{
-        audio::{handle_volume_down, handle_volume_up}, dissolve_gate::Dissolveable, player::{Held, Player, PlayerSpawnPoint, RightHand}, standing_cube_spitter::Tombstone
+        audio::{handle_volume_down, handle_volume_up},
+        dissolve_gate::Dissolveable,
+        player::{Held, Player, PlayerSpawnPoint, RightHand},
+        standing_cube_spitter::Tombstone,
     },
     ui::crosshair::CrosshairState,
 };

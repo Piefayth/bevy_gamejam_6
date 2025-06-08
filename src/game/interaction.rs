@@ -1,7 +1,9 @@
 use std::time::Duration;
 
 use avian3d::prelude::{
-    ColliderConstructor, ColliderOf, CollisionEventsEnabled, CollisionLayers, LockedAxes, RigidBody, RigidBodyColliders, RotationInterpolation, Sensor, SpatialQuery, SpatialQueryFilter, TransformInterpolation
+    ColliderConstructor, ColliderOf, CollisionEventsEnabled, CollisionLayers, LockedAxes,
+    RigidBody, RigidBodyColliders, RotationInterpolation, Sensor, SpatialQuery, SpatialQueryFilter,
+    TransformInterpolation,
 };
 use bevy::prelude::*;
 use bevy_enhanced_input::events::Completed;
@@ -92,7 +94,10 @@ fn interact(
         if let Some(held_entity) = right_hand.held_object {
             if let Ok(held) = q_held.get(held_entity) {
                 if held.can_release {
-                    commands.entity(held_entity).remove::<Held>().insert((RotationInterpolation, TransformInterpolation));
+                    commands
+                        .entity(held_entity)
+                        .remove::<Held>()
+                        .insert((RotationInterpolation, TransformInterpolation));
                 }
             }
         }
@@ -227,7 +232,11 @@ fn pick_up(
     if let Ok(collider_of) = q_collider_of.get(trigger.target()) {
         if right_hand.held_object.is_none() {
             right_hand.held_object = Some(collider_of.body);
-            commands.entity(collider_of.body).insert(Held::default()).remove::<TransformInterpolation>().remove::<RotationInterpolation>();
+            commands
+                .entity(collider_of.body)
+                .insert(Held::default())
+                .remove::<TransformInterpolation>()
+                .remove::<RotationInterpolation>();
         }
     }
 }
