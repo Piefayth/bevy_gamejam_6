@@ -263,8 +263,15 @@ jobs:
             </plist>
           EOF
 
-      - name: Package app (non-Windows)
-        if: ${{ env.is_platform_enabled == 'true' && matrix.platform != 'windows' }}
+      - name: Package app (Web)
+        if: ${{ env.is_platform_enabled == 'true' && matrix.platform == 'web' }}
+        working-directory: tmp/app
+        run: |
+          cd '${{ env.app_package_name }}'
+          zip --recurse-paths '../${{ env.package }}' .
+
+      - name: Package app (non-Windows, non-Web)
+        if: ${{ env.is_platform_enabled == 'true' && matrix.platform != 'windows' && matrix.platform != 'web' }}
         working-directory: tmp/app
         run: |
           if [ '${{ matrix.platform }}' = 'macos' ]; then
