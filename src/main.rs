@@ -17,6 +17,7 @@ use bevy::{
 };
 #[cfg(feature = "dev")]
 use bevy_dev_tools::fps_overlay::{FpsOverlayConfig, FpsOverlayPlugin};
+use bevy_framepace::FramepacePlugin;
 #[cfg(feature = "dev")]
 use bevy_inspector_egui::{bevy_egui::EguiPlugin, quick::WorldInspectorPlugin};
 use bevy_tween::DefaultTweenPlugins;
@@ -68,6 +69,7 @@ fn main() -> AppExit {
             render_plugins,
             ui_plugins,
             gameplay_plugins,
+            FramepacePlugin,
         ))
         .insert_resource(ClearColor(Color::srgb(1.0, 1.0, 1.0)))
         //.insert_resource::<AmbientLight>(AmbientLight { color: WHITE.into(), brightness: 300000., ..default() })
