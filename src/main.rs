@@ -103,6 +103,7 @@ pub enum GameState {
     Loading,
     MainMenu,
     Playing,
+    Win,
 }
 
 #[derive(Component)]

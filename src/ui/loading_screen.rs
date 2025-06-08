@@ -1,12 +1,12 @@
 use bevy::{color::palettes::css::BLACK, prelude::*};
 
-use crate::{asset_management::asset_loading::GameAssets, GameState};
+use crate::GameState;
 
 pub fn loading_screen_plugin(app: &mut App) {
     app.add_systems(OnEnter(GameState::Loading), spawn_loading_screen);
 }
 
-fn spawn_loading_screen(mut commands: Commands, game_assets: Res<GameAssets>) {
+fn spawn_loading_screen(mut commands: Commands) {
     commands.spawn((
         Node {
             width: Val::Percent(100.0),
@@ -22,7 +22,7 @@ fn spawn_loading_screen(mut commands: Commands, game_assets: Res<GameAssets>) {
         children![(
             Text::new("Loading"),
             TextFont {
-                font: game_assets.font.clone(),
+                //font: game_assets.font.clone(),
                 font_size: 33.0,
                 ..default()
             },

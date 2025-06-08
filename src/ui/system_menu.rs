@@ -15,11 +15,7 @@ pub fn system_menu_plugin(app: &mut App) {
     app.add_systems(OnEnter(CrosshairState::Hidden), spawn_system_menu);
 }
 
-fn spawn_system_menu(
-    mut commands: Commands,
-    game_assets: Res<GameAssets>,
-    player: Single<Entity, With<Player>>,
-) {
+fn spawn_system_menu(mut commands: Commands, game_assets: Res<GameAssets>) {
     commands
         .spawn((
             Node {

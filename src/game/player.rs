@@ -102,7 +102,10 @@ fn spawn_player(
             RightHand::default(),
             StateScoped(GameState::Playing),
             TransformInterpolation,
-            CollisionLayers::new(GameLayer::Player, [GameLayer::Default, GameLayer::Device]),
+            CollisionLayers::new(
+                GameLayer::Player,
+                [GameLayer::Default, GameLayer::Device, GameLayer::Win],
+            ),
             CollisionEventsEnabled,
         ))
         .observe(handle_dissolve_collisions);

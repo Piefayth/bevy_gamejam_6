@@ -138,6 +138,12 @@ pub struct FinalDoor {
     pub unused: bool,
 }
 
+#[derive(Component, Reflect)]
+#[reflect(Component)]
+pub struct BehindFinalDoor {
+    pub unused: bool,
+}
+
 pub fn asset_tag_components_plugin(app: &mut App) {
     app.register_type::<RoomWall>()
         .register_type::<BigRedButton>()
@@ -161,5 +167,6 @@ pub fn asset_tag_components_plugin(app: &mut App) {
         .register_type::<PermanentlyPowered>()
         .register_type::<ExtraDoorPowerRequired>()
         .register_type::<FancyMesh>()
-        .register_type::<FinalDoor>();
+        .register_type::<FinalDoor>()
+        .register_type::<BehindFinalDoor>();
 }

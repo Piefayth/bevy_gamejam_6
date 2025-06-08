@@ -79,6 +79,7 @@ pub enum GameLayer {
     Signal,
     Device,
     Ignore,
+    Win,
 }
 
 #[derive(Component)]

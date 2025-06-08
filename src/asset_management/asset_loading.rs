@@ -1,8 +1,11 @@
-use avian3d::prelude::{Collider, RigidBody};
+use avian3d::prelude::{
+    Collider, CollisionEventsEnabled, CollisionLayers, OnCollisionStart, RigidBody, Sensor,
+};
 use bevy::{asset::LoadState, color::palettes::css::WHITE, pbr::ExtendedMaterial, prelude::*};
 
 use crate::{
-    asset_management::asset_tag_components::{FancyMesh, WeightedCube},
+    asset_management::asset_tag_components::{BehindFinalDoor, FancyMesh, WeightedCube},
+    game::GameLayer,
     rendering::{
         section_color_prepass::{DrawSection, ATTRIBUTE_SECTION_COLOR},
         unlit_material::{UnlitMaterial, UnlitMaterialExtension, UnlitParams},
@@ -27,7 +30,8 @@ pub(crate) fn assets_plugin(app: &mut App) {
             ),
         )
         .add_systems(OnEnter(AssetLoaderState::Loading), on_start_loading)
-        .add_systems(OnEnter(AssetLoaderState::Postprocess), postprocess_assets);
+        .add_systems(OnEnter(AssetLoaderState::Postprocess), postprocess_assets)
+        .add_observer(register_final_door);
 }
 
 #[derive(SubStates, Default, Debug, Clone, PartialEq, Eq, Hash)]
@@ -376,6 +380,7 @@ fn add_rigidbodies_to_colliders(
             With<StandingCubeSpitter>,
             With<PowerButton>,
             With<WeightedCube>,
+            With<BehindFinalDoor>,
         )>,
     >, // we will add these RBs later during registration
     parent_query: Query<&ChildOf>,
@@ -407,4 +412,29 @@ fn add_rigidbodies_to_colliders(
             commands.entity(entity).remove::<NeedsRigidBody>();
         }
     }
+}
+
+fn register_final_door(
+    trigger: Trigger<OnAdd, BehindFinalDoor>,
+    mut commands: Commands,
+    q_children: Query<&Children>,
+) {
+    if let Ok(final_door_children) = q_children.get(trigger.target()) {
+        for child in final_door_children.iter() {
+            commands
+                .entity(child)
+                .insert((
+                    CollisionEventsEnabled,
+                    Sensor,
+                    CollisionLayers::new(GameLayer::Win, GameLayer::Player),
+                ))
+                .observe(win)
+                .remove::<Mesh3d>()
+                .remove::<MeshMaterial3d<UnlitMaterial>>();
+        }
+    }
+}
+
+fn win(_trigger: Trigger<OnCollisionStart>, mut commands: Commands) {
+    commands.set_state(GameState::Win);
 }
