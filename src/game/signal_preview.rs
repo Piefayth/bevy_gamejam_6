@@ -5,16 +5,10 @@ use crate::{
     asset_management::asset_tag_components::{Immobile, SignalSpitter},
     game::{
         player::{Held, RightHand},
-        signals::{MAX_SIGNAL_LIFETIME_SECS, MAX_SIGNAL_TRAVEL_DIST}, GameLayer,
+        signals::MAX_SIGNAL_TRAVEL_DIST, GameLayer,
     },
-    rendering::unlit_material::{MaterialColorOverrideInterpolator, UnlitMaterial},
+    rendering::unlit_material::UnlitMaterial,
 };
-use bevy_tween::{
-    combinator::tween,
-    prelude::{AnimationBuilderExt, EaseKind},
-    tween::{AnimationTarget, TargetAsset},
-};
-use std::time::Duration;
 
 const IMMOBILE_SPIT_SIZE: f32 = 30.;
 const STANDARD_SPIT_SIZE: f32 = 10.;

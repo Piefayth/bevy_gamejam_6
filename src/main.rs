@@ -1,6 +1,6 @@
 use asset_management::asset_plugins;
 use avian3d::prelude::{
-    Collider, CollisionLayers, PhysicsGizmos, RigidBody, RigidBodyColliders, RigidBodyDisabled, RotationInterpolation
+    Collider, CollisionLayers, PhysicsGizmos, RigidBody, RigidBodyDisabled, RotationInterpolation
 };
 #[cfg(feature = "dev")]
 use bevy::color::palettes::css::GREEN;
@@ -26,7 +26,7 @@ use rendering::{
 };
 use ui::ui_plugins;
 
-use crate::{asset_management::asset_tag_components::StandingCubeSpitter, game::{dissolve_gate::Dissolveable, player::Player}};
+use crate::game::{dissolve_gate::Dissolveable, player::Player};
 
 mod asset_management;
 mod game;
@@ -242,15 +242,11 @@ pub fn collider_distance_system(
                 commands.entity(entity).remove::<DisabledByDistance>();
             }
         }
-        else if should_be_disabled && !is_currently_disabled_by_us {
-
-            if *layers != CollisionLayers::NONE && *layers != CollisionLayers::DEFAULT  {
-                commands.entity(entity).insert(DisabledByDistance {
-                    old_layers: layers.clone(),
-                });
-                *layers = CollisionLayers::NONE;
-            }
-
+        else if should_be_disabled && !is_currently_disabled_by_us && *layers != CollisionLayers::NONE && *layers != CollisionLayers::DEFAULT {
+            commands.entity(entity).insert(DisabledByDistance {
+                old_layers: *layers,
+            });
+            *layers = CollisionLayers::NONE;
         }
     }
 }

@@ -1,5 +1,5 @@
 use avian3d::{
-    prelude::{Collider, Gravity, PhysicsDebugPlugin, PhysicsLayer},
+    prelude::{Collider, Gravity, PhysicsLayer},
     PhysicsPlugins,
 };
 use bevy::prelude::*;
