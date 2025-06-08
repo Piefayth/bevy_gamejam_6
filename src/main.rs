@@ -1,6 +1,7 @@
 use asset_management::asset_plugins;
 use avian3d::prelude::{
-    Collider, CollisionLayers, PhysicsGizmos, RigidBody, RigidBodyDisabled, RotationInterpolation,
+    Collider, CollisionLayers, PhysicsGizmos, RigidBody, RigidBodyColliders, RigidBodyDisabled,
+    RotationInterpolation,
 };
 #[cfg(feature = "dev")]
 use bevy::color::palettes::css::GREEN;
@@ -68,6 +69,7 @@ fn main() -> AppExit {
             ui_plugins,
             gameplay_plugins,
         ))
+        .insert_resource(ClearColor(Color::srgb(1.0, 1.0, 1.0)))
         //.insert_resource::<AmbientLight>(AmbientLight { color: WHITE.into(), brightness: 300000., ..default() })
         .init_state::<GameState>()
         .insert_gizmo_config(
@@ -81,7 +83,11 @@ fn main() -> AppExit {
         .add_systems(Startup, spawn_main_camera)
         .add_systems(
             FixedPreUpdate,
-            (rigid_body_distance_system, collider_distance_system).chain(),
+            (
+                rigid_body_distance_system,
+                /*collider_distance_system,*/ dissolve_system,
+            )
+                .chain(),
         )
         .init_resource::<RigidBodyDistanceConfig>()
         .init_resource::<ColliderDistanceConfig>()
@@ -145,7 +151,7 @@ pub struct RigidBodyDistanceConfig {
 impl Default for RigidBodyDistanceConfig {
     fn default() -> Self {
         Self {
-            max_distance: 500.0,
+            max_distance: 350.0,
             hysteresis: 15.0, // Bodies re-enable at max_distance, disable at max_distance + hysteresis
         }
     }
@@ -156,8 +162,13 @@ pub fn rigid_body_distance_system(
     config: Res<RigidBodyDistanceConfig>,
     player_query: Query<&GlobalTransform, With<Player>>,
     mut rigidbody_query: Query<
-        (Entity, &GlobalTransform, Option<&RigidBodyDisabled>),
-        (With<RigidBody>, Without<Player>),
+        (
+            Entity,
+            &GlobalTransform,
+            &RigidBody,
+            Option<&RigidBodyDisabled>,
+        ),
+        Without<Player>,
     >,
 ) {
     // Get player position - return early if no player found
@@ -168,7 +179,11 @@ pub fn rigid_body_distance_system(
 
     let player_pos = player_transform.translation();
 
-    for (entity, transform, disabled_component) in rigidbody_query.iter_mut() {
+    for (entity, transform, rigid_body, disabled_component) in rigidbody_query.iter_mut() {
+        if *rigid_body == RigidBody::Static {
+            continue;
+        }
+
         let distance = player_pos.distance(transform.translation());
         let is_disabled = disabled_component.is_some();
 
@@ -197,7 +212,7 @@ pub struct ColliderDistanceConfig {
 impl Default for ColliderDistanceConfig {
     fn default() -> Self {
         Self {
-            max_distance: 500.0,
+            max_distance: 350.0,
             hysteresis: 15.0, // Bodies re-enable at max_distance, disable at max_distance + hysteresis
         }
     }
@@ -256,14 +271,24 @@ pub fn collider_distance_system(
 
 const DISSOLVE_Y_THRESHOLD: f32 = -50.0;
 
-// System to despawn entities below the threshold
+// Disabling collision at distance will sometimes drop stuff through the floor
 pub fn dissolve_system(
     mut commands: Commands,
-    query: Query<(Entity, &Transform), With<Dissolveable>>,
+    query: Query<(Entity, &GlobalTransform, Option<&RigidBodyColliders>), With<Dissolveable>>,
+    q_child_transforms: Query<&GlobalTransform, Without<RigidBodyColliders>>,
 ) {
-    for (entity, transform) in query.iter() {
-        if transform.translation.y < DISSOLVE_Y_THRESHOLD {
-            commands.entity(entity).despawn();
+    for (entity, transform, maybe_colliders) in query.iter() {
+        if transform.translation().y < DISSOLVE_Y_THRESHOLD {
+            commands.entity(entity).try_despawn();
+        } else if let Some(colliders) = maybe_colliders {
+            for collider in colliders.iter() {
+                if let Ok(child_transform) = q_child_transforms.get(collider) {
+                    if child_transform.translation().y < DISSOLVE_Y_THRESHOLD {
+                        commands.entity(entity).try_despawn();
+                        break;
+                    }
+                }
+            }
         }
     }
 }

@@ -52,6 +52,7 @@ pub fn cube_plugin(app: &mut App) {
                 cube_discharge_detection,
                 update_cube_discharge_timers,
                 update_powering_up_timers,
+                fix_stuck_powered_cubes,
             )
                 .run_if(in_state(GameState::Playing)),
         );
@@ -134,14 +135,18 @@ fn cube_consume_signal(
     q_signals: Query<(), With<Signal>>,
     q_powered: Query<(), (With<Powered>, Without<PoweredTimer>)>,
     q_discharging: Query<(), With<CubeDischarge>>, // Check if cube is in cooldown
+    q_collider_of: Query<&ColliderOf>,
 ) {
-    if let Some(device_body) = trigger.body {
-        if q_signals.contains(trigger.collider) {
-            // Don't power cubes that are already powered or in discharge cooldown
-            if !q_powered.contains(device_body) && !q_discharging.contains(device_body) {
-                commands.entity(device_body).insert(Powered);
+    if q_signals.contains(trigger.collider) {
+        if let Ok(collider_of) = q_collider_of.get(trigger.target()) {
+            if !q_powered.contains(collider_of.body) && !q_discharging.contains(collider_of.body) {
+                commands.entity(collider_of.body).trigger(DirectSignal);
                 commands.entity(trigger.collider).despawn();
             }
+        } else if !q_powered.contains(trigger.target()) && !q_discharging.contains(trigger.target())
+        {
+            commands.entity(trigger.target()).trigger(DirectSignal);
+            commands.entity(trigger.collider).despawn();
         }
     }
 }
@@ -342,6 +347,54 @@ fn update_powering_up_timers(
 
         if powering_up.timer.finished() {
             commands.entity(cube_entity).remove::<PoweringUp>();
+        }
+    }
+}
+
+// i hate gamejams i hate gamejams i hate gamejams
+fn fix_stuck_powered_cubes(
+    mut commands: Commands,
+    q_unpowered_cubes: Query<
+        &RigidBodyColliders,
+        (
+            With<WeightedCube>,
+            Without<Powered>,
+            Without<Tombstone>,
+            Without<PoweringUp>,
+        ),
+    >,
+    q_unlit_objects: Query<&MeshMaterial3d<UnlitMaterial>>,
+    unlit_materials: Res<Assets<UnlitMaterial>>,
+) {
+    for cube_colliders in &q_unpowered_cubes {
+        for collider_entity in cube_colliders.iter() {
+            if let Ok(material_handle) = q_unlit_objects.get(collider_entity) {
+                if let Some(material) = unlit_materials.get(material_handle) {
+                    let current_intensity = material.extension.params.intensity;
+
+                    // If intensity is greater than 1, tween it down to 1
+                    if current_intensity > 1.0 {
+                        let intensity_ratio =
+                            (current_intensity - 1.0) / (POWER_MATERIAL_INTENSITY - 1.0);
+                        let duration_secs = POWER_ANIMATION_DURATION_SEC * intensity_ratio.max(0.1);
+
+                        commands
+                            .entity(collider_entity)
+                            .animation()
+                            .insert(tween(
+                                Duration::from_secs_f32(duration_secs),
+                                EaseKind::CubicOut,
+                                TargetAsset::Asset(material_handle.clone_weak()).with(
+                                    MaterialIntensityInterpolator {
+                                        start: current_intensity,
+                                        end: 1.0,
+                                    },
+                                ),
+                            ))
+                            .insert(DespawnOnFinish);
+                    }
+                }
+            }
         }
     }
 }

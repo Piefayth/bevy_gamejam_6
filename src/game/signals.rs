@@ -1,8 +1,8 @@
 use std::time::Duration;
 
 use avian3d::prelude::{
-    ColliderConstructor, CollisionEventsEnabled, CollisionLayers, OnCollisionStart, RigidBody,
-    Sensor,
+    ColliderConstructor, ColliderOf, CollisionEventsEnabled, CollisionLayers, OnCollisionStart,
+    RigidBody, Sensor,
 };
 use bevy::prelude::*;
 use bevy_tween::{
@@ -54,13 +54,16 @@ pub fn default_signal_collisions(
     mut commands: Commands,
     q_signals: Query<(), With<Signal>>,
     q_powered: Query<(), (With<Powered>, Without<PoweredTimer>)>,
+    q_collider_of: Query<&ColliderOf>,
 ) {
-    if let Some(signaled_body) = trigger.body {
-        if q_signals.contains(trigger.collider)
-            && !q_powered.contains(trigger.collider)
-            && !q_powered.contains(signaled_body)
-        {
-            commands.entity(signaled_body).trigger(DirectSignal);
+    if q_signals.contains(trigger.collider) {
+        if let Ok(collider_of) = q_collider_of.get(trigger.target()) {
+            if !q_powered.contains(collider_of.body) {
+                commands.entity(collider_of.body).trigger(DirectSignal);
+                commands.entity(trigger.collider).despawn();
+            }
+        } else if !q_powered.contains(trigger.target()) {
+            commands.entity(trigger.target()).trigger(DirectSignal);
             commands.entity(trigger.collider).despawn();
         }
     }

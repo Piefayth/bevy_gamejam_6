@@ -132,6 +132,12 @@ pub struct FancyMesh {
     pub unused: bool,
 }
 
+#[derive(Component, Reflect)]
+#[reflect(Component)]
+pub struct FinalDoor {
+    pub unused: bool,
+}
+
 pub fn asset_tag_components_plugin(app: &mut App) {
     app.register_type::<RoomWall>()
         .register_type::<BigRedButton>()
@@ -154,5 +160,6 @@ pub fn asset_tag_components_plugin(app: &mut App) {
         .register_type::<PowerButton>()
         .register_type::<PermanentlyPowered>()
         .register_type::<ExtraDoorPowerRequired>()
-        .register_type::<FancyMesh>();
+        .register_type::<FancyMesh>()
+        .register_type::<FinalDoor>();
 }

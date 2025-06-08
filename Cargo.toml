@@ -22,7 +22,16 @@ trace = [
 [dependencies]
 # bevy ecosystem crates (production)
 bevy_enhanced_input = "0.12"
-avian3d = { version = "0.3", features = [
+# avian3d = { version = "0.3", features = [
+#   "3d",
+#   "f32",
+#   "parry-f32",
+#   "parallel",
+#   "serialize",
+#   "collider-from-mesh"
+# ] }
+
+avian3d = { git = "https://github.com/Jondolf/avian", branch = "main", features = [
   "3d",
   "f32",
   "parry-f32",
@@ -76,7 +85,8 @@ features = [
   "png",
   "bevy_window",
   "bevy_winit",
-  "x11"
+  "x11",
+  "wayland"
 ]
 
 [target.'cfg(target_arch = "wasm32")'.dependencies.bevy]
@@ -101,6 +111,9 @@ features = [
   "track_location",
   "webgpu"
 ]
+
+[patch.crates-io]
+avian3d = { git = "https://github.com/Jondolf/avian", branch = "main" }
 
 # Idiomatic Bevy code often triggers these lints, and the CI workflow treats them as errors.
 # In some cases they may still signal poor code quality however, so consider commenting out these lines.
