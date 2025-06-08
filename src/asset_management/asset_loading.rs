@@ -207,10 +207,10 @@ fn postprocess_assets(
                         // Configure entities with the attribute to be drawn with section outlines
                         scene.world.entity_mut(*entity).insert(DrawSection);
                     } else {
-                        warn!(
-                            "Mesh on entity {:?} doesn't have vertex colors to convert",
-                            entity
-                        );
+                        // warn!(
+                        //     "Mesh on entity {:?} doesn't have vertex colors to convert",
+                        //     entity
+                        // );
                     }
 
                     scene.world.entity_mut(*entity).insert(NeedsRigidBody {

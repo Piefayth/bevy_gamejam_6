@@ -51,6 +51,7 @@ pub fn cube_plugin(app: &mut App) {
                 cube_receive_power,
                 cube_discharge_detection,
                 update_cube_discharge_timers,
+                update_powering_up_timers,
             )
                 .run_if(in_state(GameState::Playing)),
         );
@@ -58,7 +59,7 @@ pub fn cube_plugin(app: &mut App) {
 
 fn cube_discharge_detection(
     mut commands: Commands,
-    q_cubes: Query<(Entity, &GlobalTransform), (With<WeightedCube>, With<Powered>, Without<Held>)>,
+    q_cubes: Query<(Entity, &GlobalTransform), (With<WeightedCube>, With<Powered>, Without<Held>, Without<PoweringUp>)>,
     spatial_query: SpatialQuery,
     q_collider_of: Query<&ColliderOf>,
     q_discharging: Query<(), With<CubeDischarge>>,
@@ -158,6 +159,11 @@ fn update_cube_discharge_timers(
     }
 }
 
+#[derive(Component)]
+pub struct PoweringUp {
+    timer: Timer,
+}
+
 fn cube_direct_signal(
     trigger: Trigger<DirectSignal>,
     mut commands: Commands,
@@ -174,19 +180,25 @@ fn cube_direct_signal(
 
 fn cube_receive_power(
     mut commands: Commands,
-    q_powered_cube: Query<&RigidBodyColliders, (With<WeightedCube>, Added<Powered>)>,
+    q_powered_cube: Query<(Entity, &RigidBodyColliders, Has<PoweredBy>), (With<WeightedCube>, Added<Powered>, Without<Tombstone>)>,
     q_unlit_objects: Query<&MeshMaterial3d<UnlitMaterial>>,
     unlit_materials: Res<Assets<UnlitMaterial>>,
     q_tween: Query<(), With<TimeSpan>>,
     q_children: Query<&Children, With<Collider>>,
 ) {
-    for powered_cube_colliders in &q_powered_cube {
+    for (cube_entity, powered_cube_colliders, is_powered_by) in &q_powered_cube {
+        if !is_powered_by {
+            commands.entity(cube_entity).insert(PoweringUp {
+                timer: Timer::from_seconds(POWER_ANIMATION_DURATION_SEC, TimerMode::Once),
+            });
+        }
+
         for collider_entity in powered_cube_colliders.iter() {
             // Clear existing tweens first
             if let Ok(collider_children) = q_children.get(collider_entity) {
                 for child in collider_children.iter() {
                     if q_tween.contains(child) {
-                        commands.entity(child).despawn();
+                        commands.entity(child).try_despawn();
                     }
                 }
             }
@@ -305,6 +317,20 @@ fn register_cube_signals(
                     ))
                     .observe(cube_consume_signal);
             }
+        }
+    }
+}
+
+fn update_powering_up_timers(
+    mut commands: Commands,
+    time: Res<Time>,
+    mut q_powering_up: Query<(Entity, &mut PoweringUp), With<WeightedCube>>,
+) {
+    for (cube_entity, mut powering_up) in q_powering_up.iter_mut() {
+        powering_up.timer.tick(time.delta());
+
+        if powering_up.timer.finished() {
+            commands.entity(cube_entity).remove::<PoweringUp>();
         }
     }
 }

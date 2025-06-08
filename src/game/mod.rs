@@ -1,5 +1,5 @@
 use avian3d::{
-    prelude::{Collider, Gravity, PhysicsLayer},
+    prelude::{Collider, Gravity, PhysicsDebugPlugin, PhysicsLayer},
     PhysicsPlugins,
 };
 use bevy::prelude::*;
@@ -18,7 +18,7 @@ use signals::signals_plugin;
 use standing_cube_spitter::standing_cube_spitter_plugin;
 use weighted_cube::cube_plugin;
 
-use crate::game::discharge_gate::discharge_gate_plugin;
+use crate::game::{discharge_gate::discharge_gate_plugin, signal_preview::signal_preview_plugin};
 
 pub mod button;
 pub mod cube_spitter;
@@ -34,6 +34,7 @@ pub mod signal_spitter;
 pub mod signals;
 pub mod standing_cube_spitter;
 pub mod weighted_cube;
+pub mod signal_preview;
 
 pub fn gameplay_plugins(app: &mut App) {
     app.add_plugins((
@@ -51,8 +52,11 @@ pub fn gameplay_plugins(app: &mut App) {
         cube_spitter_plugin,
         cube_plugin,
         standing_cube_spitter_plugin,
+    ))
+    .add_plugins((
         button_plugin,
         discharge_gate_plugin,
+        signal_preview_plugin
     ))
     .insert_resource(Gravity(Vec3::NEG_Y * 19.6));
 

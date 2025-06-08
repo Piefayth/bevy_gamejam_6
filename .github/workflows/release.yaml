@@ -210,7 +210,7 @@ jobs:
           cargo binstall --locked --no-confirm --force wasm-bindgen-cli
           cargo binstall --locked --no-confirm --force wasm-opt
           bevy build --locked --release --features='${{ matrix.features }}' --yes web --bundle
-          mv 'target/bevy_web/web-release/${{ env.cargo_build_binary_name }}' '${{ env.app }}'
+          mv 'target/bevy_web/web-release/${{ env.cargo_build_binary_name }}'/* '${{ env.app }}'
 
       - name: Build and add binaries to app (non-Web)
         if: ${{ env.is_platform_enabled == 'true' && matrix.platform != 'web' }}

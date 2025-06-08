@@ -1,6 +1,6 @@
 use asset_management::asset_plugins;
 use avian3d::prelude::{
-    Collider, CollisionLayers, PhysicsGizmos, RigidBody, RigidBodyDisabled, RotationInterpolation,
+    Collider, CollisionLayers, PhysicsGizmos, RigidBody, RigidBodyColliders, RigidBodyDisabled, RotationInterpolation
 };
 #[cfg(feature = "dev")]
 use bevy::color::palettes::css::GREEN;
@@ -26,7 +26,7 @@ use rendering::{
 };
 use ui::ui_plugins;
 
-use crate::game::player::Player;
+use crate::{asset_management::asset_tag_components::StandingCubeSpitter, game::{dissolve_gate::Dissolveable, player::Player}};
 
 mod asset_management;
 mod game;
@@ -81,7 +81,7 @@ fn main() -> AppExit {
         .add_systems(Startup, spawn_main_camera)
         .add_systems(
             FixedPreUpdate,
-            (collider_distance_system, rigid_body_distance_system),
+            (rigid_body_distance_system, collider_distance_system).chain(),
         )
         .init_resource::<RigidBodyDistanceConfig>()
         .init_resource::<ColliderDistanceConfig>()
@@ -204,7 +204,9 @@ impl Default for ColliderDistanceConfig {
 }
 
 #[derive(Component)]
-pub struct OldCollisionLayers(pub CollisionLayers);
+pub struct DisabledByDistance {
+    pub old_layers: CollisionLayers,
+}
 
 pub fn collider_distance_system(
     mut commands: Commands,
@@ -214,48 +216,55 @@ pub fn collider_distance_system(
         (
             Entity,
             &GlobalTransform,
-            Option<&OldCollisionLayers>,
-            Option<&CollisionLayers>,
+            &mut CollisionLayers,
+            Option<&DisabledByDistance>,
         ),
         (With<Collider>, Without<Player>),
     >,
 ) {
-    // Get player position - return early if no player found
     let player_transform = match player_query.single() {
         Ok(transform) => transform,
-        Err(_) => return, // No player or multiple players
+        Err(_) => return, // No player found, do nothing.
     };
 
     let player_pos = player_transform.translation();
 
-    for (entity, transform, maybe_old_collision_layers, maybe_collision_layers) in
-        collider_query.iter_mut()
-    {
+    for (entity, transform, mut layers, disabled_marker) in collider_query.iter_mut() {
         let distance = player_pos.distance(transform.translation());
-        let is_disabled = maybe_old_collision_layers.is_some();
+        let is_currently_disabled_by_us = disabled_marker.is_some();
 
-        match (is_disabled, distance <= config.max_distance) {
-            // Currently disabled but should be enabled (within range)
-            (true, true) => {
-                if let Some(old_layers) = maybe_old_collision_layers {
-                    // Restore original collision layers
-                    commands
-                        .entity(entity)
-                        .insert(old_layers.0)
-                        .remove::<OldCollisionLayers>();
-                }
+        let should_be_disabled = distance > config.max_distance + config.hysteresis;
+        let should_be_enabled = distance <= config.max_distance;
+
+        if should_be_enabled && is_currently_disabled_by_us {
+            if let Some(marker) = disabled_marker {
+                *layers = marker.old_layers;
+                commands.entity(entity).remove::<DisabledByDistance>();
             }
-            // Currently enabled but should be disabled (outside range + hysteresis)
-            (false, false) if distance > config.max_distance + config.hysteresis => {
-                if let Some(current_layers) = maybe_collision_layers {
-                    // Store current layers and set to NONE
-                    commands
-                        .entity(entity)
-                        .insert((CollisionLayers::NONE, OldCollisionLayers(*current_layers)));
-                }
+        }
+        else if should_be_disabled && !is_currently_disabled_by_us {
+
+            if *layers != CollisionLayers::NONE && *layers != CollisionLayers::DEFAULT  {
+                commands.entity(entity).insert(DisabledByDistance {
+                    old_layers: layers.clone(),
+                });
+                *layers = CollisionLayers::NONE;
             }
-            // No change needed
-            _ => {}
+
+        }
+    }
+}
+
+const DISSOLVE_Y_THRESHOLD: f32 = -50.0;
+
+// System to despawn entities below the threshold
+pub fn dissolve_system(
+    mut commands: Commands,
+    query: Query<(Entity, &Transform), With<Dissolveable>>,
+) {
+    for (entity, transform) in query.iter() {
+        if transform.translation.y < DISSOLVE_Y_THRESHOLD {
+            commands.entity(entity).despawn();
         }
     }
 }
