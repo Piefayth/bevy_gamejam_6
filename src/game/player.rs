@@ -10,6 +10,7 @@ use avian3d::{
 };
 use bevy::{
     color::palettes::css::{RED, WHITE},
+    ecs::entity_disabling::Disabled,
     prelude::*,
 };
 
@@ -176,13 +177,14 @@ fn rotate_camera(
 
 const CAMERA_HEIGHT: f32 = 4.0;
 fn camera_follow_player(
-    maybe_player: Option<Single<&Transform, With<Player>>>,
+    maybe_player: Option<Single<(&Transform, Has<Disabled>), With<Player>>>,
     mut camera: Single<&mut Transform, (With<MainCamera>, Without<Player>)>,
 ) {
-    if let Some(player) = maybe_player {
-        camera.translation = player
+    if let Some(player_single) = maybe_player {
+        let (player_transform, _is_disabled) = player_single.into_inner();
+        camera.translation = player_transform
             .translation
-            .with_y(player.translation.y + CAMERA_HEIGHT);
+            .with_y(player_transform.translation.y + CAMERA_HEIGHT);
     }
 }
 

@@ -50,6 +50,9 @@ pub struct Look;
 #[input_action(output = Vec2)]
 pub struct Movement;
 
+#[derive(Component)]
+pub struct InputManager;
+
 fn spawn_input_manager(mut commands: Commands) {
     // i don't think there's any reason to put these on the player itself in a single player game?
     commands.spawn((

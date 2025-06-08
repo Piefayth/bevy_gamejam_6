@@ -75,7 +75,7 @@ fn on_start_loading(
         asset_server.load(GltfAssetLabel::Scene(0).from_asset("scenes/weighted_cube_cyan.glb"));
     commands.spawn(LoadingAsset(game_assets.weighted_cube_cyan.clone().into()));
 
-    game_assets.font = asset_server.load("fonts/Ronysiswadi15-51Dv8.ttf");
+    game_assets.font = asset_server.load("fonts/FallingSky-JKwK.otf");
     commands.spawn(LoadingAsset(game_assets.font.clone().into()));
 
     game_assets.cyan_signal_material = unlit_materials.add(UnlitMaterial {

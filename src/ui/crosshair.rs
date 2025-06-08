@@ -9,7 +9,7 @@ use crate::{
         player::Held,
         GameLayer,
     },
-    GameState,
+    ui::main_menu::MainMenuState,
 };
 
 pub fn crosshair_plugin(app: &mut App) {
@@ -25,7 +25,7 @@ pub fn crosshair_plugin(app: &mut App) {
 }
 
 #[derive(SubStates, Clone, PartialEq, Eq, Hash, Debug, Default)]
-#[source(GameState = GameState::Playing)]
+#[source(MainMenuState = MainMenuState::Hidden)]
 #[states(scoped_entities)]
 pub enum CrosshairState {
     #[default]
