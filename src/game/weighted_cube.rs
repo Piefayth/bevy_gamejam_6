@@ -24,7 +24,7 @@ use super::{
     pressure_plate::{PoweredBy, POWER_ANIMATION_DURATION_SEC, POWER_MATERIAL_INTENSITY},
     signals::{DirectSignal, MaterialIntensityInterpolator, Powered, Signal},
     standing_cube_spitter::Tombstone,
-    DespawnOnFinish, GameLayer,
+    GameLayer,
 };
 
 #[derive(Component)]
@@ -166,7 +166,7 @@ fn update_cube_discharge_timers(
 
             // If this cube has PoweredBy, it should be re-powered immediately
             if q_powered_by.contains(cube_entity) {
-                commands.entity(cube_entity).insert(Powered);
+                commands.entity(cube_entity).try_insert(Powered);
             }
         }
     }
@@ -187,7 +187,7 @@ fn cube_direct_signal(
 
     // Don't power cubes that are already powered or in discharge cooldown
     if !q_powered.contains(target) && !q_discharging.contains(target) {
-        commands.entity(target).insert(Powered);
+        commands.entity(target).try_insert(Powered);
     }
 }
 
@@ -204,7 +204,7 @@ fn cube_receive_power(
 ) {
     for (cube_entity, powered_cube_colliders, is_powered_by) in &q_powered_cube {
         if !is_powered_by {
-            commands.entity(cube_entity).insert(PoweringUp {
+            commands.entity(cube_entity).try_insert(PoweringUp {
                 timer: Timer::from_seconds(POWER_ANIMATION_DURATION_SEC, TimerMode::Once),
             });
         }
@@ -226,20 +226,16 @@ fn cube_receive_power(
                         / (POWER_MATERIAL_INTENSITY - 1.0);
                     let duration_secs = POWER_ANIMATION_DURATION_SEC * intensity_ratio.max(0.1); // Minimum 0.1 seconds
 
-                    commands
-                        .entity(collider_entity)
-                        .animation()
-                        .insert(tween(
-                            Duration::from_secs_f32(duration_secs),
-                            EaseKind::CubicOut,
-                            TargetAsset::Asset(material_handle.clone_weak()).with(
-                                MaterialIntensityInterpolator {
-                                    start: current_intensity,
-                                    end: POWER_MATERIAL_INTENSITY,
-                                },
-                            ),
-                        ))
-                        .insert(DespawnOnFinish);
+                    commands.entity(collider_entity).animation().insert(tween(
+                        Duration::from_secs_f32(duration_secs),
+                        EaseKind::CubicOut,
+                        TargetAsset::Asset(material_handle.clone_weak()).with(
+                            MaterialIntensityInterpolator {
+                                start: current_intensity,
+                                end: POWER_MATERIAL_INTENSITY,
+                            },
+                        ),
+                    ));
                 }
             }
         }
@@ -273,20 +269,16 @@ fn cube_lose_power(
                         (current_intensity - 1.0) / (POWER_MATERIAL_INTENSITY - 1.0);
                     let duration_secs = POWER_ANIMATION_DURATION_SEC * intensity_ratio.max(0.1);
 
-                    commands
-                        .entity(collider_entity)
-                        .animation()
-                        .insert(tween(
-                            Duration::from_secs_f32(duration_secs),
-                            EaseKind::CubicOut,
-                            TargetAsset::Asset(material_handle.clone_weak()).with(
-                                MaterialIntensityInterpolator {
-                                    start: current_intensity,
-                                    end: 1.0,
-                                },
-                            ),
-                        ))
-                        .insert(DespawnOnFinish);
+                    commands.entity(collider_entity).animation().insert(tween(
+                        Duration::from_secs_f32(duration_secs),
+                        EaseKind::CubicOut,
+                        TargetAsset::Asset(material_handle.clone_weak()).with(
+                            MaterialIntensityInterpolator {
+                                start: current_intensity,
+                                end: 1.0,
+                            },
+                        ),
+                    ));
                 }
             }
         }
@@ -346,7 +338,7 @@ fn update_powering_up_timers(
         powering_up.timer.tick(time.delta());
 
         if powering_up.timer.finished() {
-            commands.entity(cube_entity).remove::<PoweringUp>();
+            commands.entity(cube_entity).try_remove::<PoweringUp>();
         }
     }
 }
@@ -378,20 +370,16 @@ fn fix_stuck_powered_cubes(
                             (current_intensity - 1.0) / (POWER_MATERIAL_INTENSITY - 1.0);
                         let duration_secs = POWER_ANIMATION_DURATION_SEC * intensity_ratio.max(0.1);
 
-                        commands
-                            .entity(collider_entity)
-                            .animation()
-                            .insert(tween(
-                                Duration::from_secs_f32(duration_secs),
-                                EaseKind::CubicOut,
-                                TargetAsset::Asset(material_handle.clone_weak()).with(
-                                    MaterialIntensityInterpolator {
-                                        start: current_intensity,
-                                        end: 1.0,
-                                    },
-                                ),
-                            ))
-                            .insert(DespawnOnFinish);
+                        commands.entity(collider_entity).animation().insert(tween(
+                            Duration::from_secs_f32(duration_secs),
+                            EaseKind::CubicOut,
+                            TargetAsset::Asset(material_handle.clone_weak()).with(
+                                MaterialIntensityInterpolator {
+                                    start: current_intensity,
+                                    end: 1.0,
+                                },
+                            ),
+                        ));
                     }
                 }
             }

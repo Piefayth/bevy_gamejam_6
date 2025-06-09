@@ -16,7 +16,7 @@ use crate::{
 use super::{
     pressure_plate::{POWER_ANIMATION_DURATION_SEC, POWER_MATERIAL_INTENSITY},
     signals::{default_signal_collisions, DirectSignal, MaterialIntensityInterpolator},
-    DespawnOnFinish, GameLayer,
+    GameLayer,
 };
 
 pub fn inert_plugin(app: &mut App) {
@@ -75,36 +75,32 @@ fn inert_direct_signal(
                 }
 
                 // Then tween down to dim
-                commands
-                    .entity(child)
-                    .animation()
-                    .insert(parallel((
-                        tween(
-                            Duration::from_millis((POWER_ANIMATION_DURATION_SEC * 1000.) as u64),
-                            EaseKind::CubicOut,
-                            TargetAsset::Asset(material_handle.clone_weak()).with(
-                                MaterialIntensityInterpolator {
-                                    start: POWER_MATERIAL_INTENSITY,
-                                    end: 1.0, // Normal intensity
-                                },
-                            ),
+                commands.entity(child).animation().insert(parallel((
+                    tween(
+                        Duration::from_millis((POWER_ANIMATION_DURATION_SEC * 1000.) as u64),
+                        EaseKind::CubicOut,
+                        TargetAsset::Asset(material_handle.clone_weak()).with(
+                            MaterialIntensityInterpolator {
+                                start: POWER_MATERIAL_INTENSITY,
+                                end: 1.0, // Normal intensity
+                            },
                         ),
-                        tween(
-                            Duration::from_millis((POWER_ANIMATION_DURATION_SEC * 1000.) as u64),
-                            EaseKind::CubicOut,
-                            TargetAsset::Asset(material_handle.clone_weak()).with(
-                                MaterialColorOverrideInterpolator {
-                                    target_color: LinearRgba::new(
-                                        2. / 255.,
-                                        76. / 255.,
-                                        128. / 255.,
-                                        1.0,
-                                    ),
-                                },
-                            ),
+                    ),
+                    tween(
+                        Duration::from_millis((POWER_ANIMATION_DURATION_SEC * 1000.) as u64),
+                        EaseKind::CubicOut,
+                        TargetAsset::Asset(material_handle.clone_weak()).with(
+                            MaterialColorOverrideInterpolator {
+                                target_color: LinearRgba::new(
+                                    2. / 255.,
+                                    76. / 255.,
+                                    128. / 255.,
+                                    1.0,
+                                ),
+                            },
                         ),
-                    )))
-                    .insert(DespawnOnFinish);
+                    ),
+                )));
             }
         }
     }

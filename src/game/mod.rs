@@ -82,9 +82,6 @@ pub enum GameLayer {
     Win,
 }
 
-#[derive(Component)]
-pub struct DespawnOnFinish;
-
 pub fn despawn_tween_on_finish(
     mut time_runner_ended_reader: EventReader<TimeRunnerEnded>,
     q_children: Query<&Children>,

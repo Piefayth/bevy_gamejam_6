@@ -41,7 +41,7 @@ avian3d = { git = "https://github.com/Jondolf/avian", branch = "main", features 
 ] }
 bevy-tnua = "0.24"
 bevy-tnua-avian3d = "0.5"
-bevy_tween = "0.8"
+bevy_tween = { git ="https://github.com/Piefayth/bevy_tween", branch ="try"}
 bevy_framepace = "0.19.1"
 
 # general rust crates

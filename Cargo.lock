@@ -1631,8 +1631,7 @@ dependencies = [
 [[package]]
 name = "bevy_tween"
 version = "0.8.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "aae743c5677965fa86495604847a55fad480c84f12706b446f57a878bce9d4d2"
+source = "git+https://github.com/Piefayth/bevy_tween?branch=try#bb110cc12bb0ab76dbfc44c0409e2dd244b6982c"
 dependencies = [
  "bevy",
  "bevy_math",

@@ -21,7 +21,7 @@ use crate::{
 use super::{
     pressure_plate::{POWER_ANIMATION_DURATION_SEC, POWER_MATERIAL_INTENSITY},
     signals::{default_signal_collisions, DirectSignal, MaterialIntensityInterpolator, Powered},
-    DespawnOnFinish, GameLayer,
+    GameLayer,
 };
 
 pub fn door_plugin(app: &mut App) {
@@ -190,18 +190,14 @@ fn check_door_power_requirements(
             let duration = Duration::from_secs_f32(1.0 * progress);
             commands.entity(door_entity).trigger(DoorOpened);
 
-            commands
-                .entity(door_entity)
-                .animation()
-                .insert(tween(
-                    duration,
-                    EaseKind::Linear,
-                    TargetComponent::marker().with(translation(
-                        door_transform.translation,
-                        original_pos.0.with_y(target_y),
-                    )),
-                ))
-                .insert(DespawnOnFinish);
+            commands.entity(door_entity).animation().insert(tween(
+                duration,
+                EaseKind::Linear,
+                TargetComponent::marker().with(translation(
+                    door_transform.translation,
+                    original_pos.0.with_y(target_y),
+                )),
+            ));
         } else if !should_be_open && is_currently_open && !is_animating {
             // Door should close and isn't already animating
             for child in door_children.iter() {
@@ -210,16 +206,12 @@ fn check_door_power_requirements(
                 }
             }
 
-            commands
-                .entity(door_entity)
-                .animation()
-                .insert(tween(
-                    Duration::from_secs(1),
-                    EaseKind::Linear,
-                    TargetComponent::marker()
-                        .with(translation(door_transform.translation, original_pos.0)),
-                ))
-                .insert(DespawnOnFinish);
+            commands.entity(door_entity).animation().insert(tween(
+                Duration::from_secs(1),
+                EaseKind::Linear,
+                TargetComponent::marker()
+                    .with(translation(door_transform.translation, original_pos.0)),
+            ));
         }
     }
 }
@@ -249,20 +241,16 @@ fn on_power_added(
             }
 
             if let Ok(material_handle) = q_unlit_objects.get(collider_entity) {
-                commands
-                    .entity(collider_entity)
-                    .animation()
-                    .insert(tween(
-                        Duration::from_millis((POWER_ANIMATION_DURATION_SEC * 1000.) as u64),
-                        EaseKind::CubicOut,
-                        TargetAsset::Asset(material_handle.clone_weak()).with(
-                            MaterialIntensityInterpolator {
-                                start: 1.0,
-                                end: POWER_MATERIAL_INTENSITY,
-                            },
-                        ),
-                    ))
-                    .insert(DespawnOnFinish);
+                commands.entity(collider_entity).animation().insert(tween(
+                    Duration::from_millis((POWER_ANIMATION_DURATION_SEC * 1000.) as u64),
+                    EaseKind::CubicOut,
+                    TargetAsset::Asset(material_handle.clone_weak()).with(
+                        MaterialIntensityInterpolator {
+                            start: 1.0,
+                            end: POWER_MATERIAL_INTENSITY,
+                        },
+                    ),
+                ));
             }
         }
     }
@@ -290,20 +278,16 @@ fn on_power_removed(
             }
 
             if let Ok(material_handle) = q_unlit_objects.get(collider_entity) {
-                commands
-                    .entity(collider_entity)
-                    .animation()
-                    .insert(tween(
-                        Duration::from_millis((POWER_ANIMATION_DURATION_SEC * 1000.) as u64),
-                        EaseKind::CubicOut,
-                        TargetAsset::Asset(material_handle.clone_weak()).with(
-                            MaterialIntensityInterpolator {
-                                start: POWER_MATERIAL_INTENSITY,
-                                end: 1.0,
-                            },
-                        ),
-                    ))
-                    .insert(DespawnOnFinish);
+                commands.entity(collider_entity).animation().insert(tween(
+                    Duration::from_millis((POWER_ANIMATION_DURATION_SEC * 1000.) as u64),
+                    EaseKind::CubicOut,
+                    TargetAsset::Asset(material_handle.clone_weak()).with(
+                        MaterialIntensityInterpolator {
+                            start: POWER_MATERIAL_INTENSITY,
+                            end: 1.0,
+                        },
+                    ),
+                ));
             }
         }
     }

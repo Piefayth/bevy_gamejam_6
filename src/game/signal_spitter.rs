@@ -25,7 +25,7 @@ use super::{
         default_signal_collisions, DirectSignal, MaterialIntensityInterpolator, Powered,
         SignalAfterDelay,
     },
-    DespawnOnFinish, GameLayer,
+    GameLayer,
 };
 
 // Component to track continuous emission state
@@ -111,8 +111,7 @@ fn signal_spitter_direct_signal(
                                 },
                             ),
                         ),
-                    )))
-                    .insert(DespawnOnFinish);
+                    )));
             }
         }
     }
@@ -204,20 +203,16 @@ fn signal_spitter_receive_power(
                         / (POWER_MATERIAL_INTENSITY - 1.0);
                     let duration_secs = POWER_ANIMATION_DURATION_SEC * intensity_ratio.max(0.1); // Minimum 0.1 seconds
 
-                    commands
-                        .entity(collider_entity)
-                        .animation()
-                        .insert(tween(
-                            Duration::from_secs_f32(duration_secs),
-                            EaseKind::CubicOut,
-                            TargetAsset::Asset(material_handle.clone_weak()).with(
-                                MaterialIntensityInterpolator {
-                                    start: current_intensity,
-                                    end: POWER_MATERIAL_INTENSITY,
-                                },
-                            ),
-                        ))
-                        .insert(DespawnOnFinish);
+                    commands.entity(collider_entity).animation().insert(tween(
+                        Duration::from_secs_f32(duration_secs),
+                        EaseKind::CubicOut,
+                        TargetAsset::Asset(material_handle.clone_weak()).with(
+                            MaterialIntensityInterpolator {
+                                start: current_intensity,
+                                end: POWER_MATERIAL_INTENSITY,
+                            },
+                        ),
+                    ));
                 }
             }
         }
@@ -265,20 +260,16 @@ fn signal_spitter_lose_power(
                         (current_intensity - 1.0) / (POWER_MATERIAL_INTENSITY - 1.0);
                     let duration_secs = POWER_ANIMATION_DURATION_SEC * intensity_ratio.max(0.1);
 
-                    commands
-                        .entity(collider_entity)
-                        .animation()
-                        .insert(tween(
-                            Duration::from_secs_f32(duration_secs),
-                            EaseKind::CubicOut,
-                            TargetAsset::Asset(material_handle.clone_weak()).with(
-                                MaterialIntensityInterpolator {
-                                    start: current_intensity,
-                                    end: 1.0,
-                                },
-                            ),
-                        ))
-                        .insert(DespawnOnFinish);
+                    commands.entity(collider_entity).animation().insert(tween(
+                        Duration::from_secs_f32(duration_secs),
+                        EaseKind::CubicOut,
+                        TargetAsset::Asset(material_handle.clone_weak()).with(
+                            MaterialIntensityInterpolator {
+                                start: current_intensity,
+                                end: 1.0,
+                            },
+                        ),
+                    ));
                 }
             }
         }
