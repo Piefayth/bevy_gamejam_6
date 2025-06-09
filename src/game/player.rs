@@ -3,7 +3,7 @@ use std::f32::consts::FRAC_PI_2;
 use avian3d::{
     math::PI,
     prelude::{
-        Collider, CollisionEventsEnabled, CollisionLayers, LockedAxes, RigidBody,
+        Collider, CollisionEventsEnabled, CollisionLayers, LinearVelocity, LockedAxes, RigidBody,
         RigidBodyColliders, RigidBodyDisabled, ShapeCaster, ShapeHits, SpatialQueryFilter,
         TransformInterpolation,
     },
@@ -198,13 +198,13 @@ pub struct Held {
 
 fn picked_up_item(
     mut commands: Commands,
-    q_picked_up: Query<(Entity, &RigidBodyColliders), Added<Held>>,
+    mut q_picked_up: Query<(Entity, &RigidBodyColliders, &mut LinearVelocity), Added<Held>>,
     mut q_collider_materials: Query<(Entity, &MeshMaterial3d<UnlitMaterial>, &Collider)>,
     mut unlit_materials: ResMut<Assets<UnlitMaterial>>,
     mut transforms: Query<&mut Transform>,
     mut player: Single<(Entity, &mut RightHand), With<Player>>,
 ) {
-    for (picked_up_body, picked_up_colliders) in &q_picked_up {
+    for (picked_up_body, picked_up_colliders, mut linear_velocity) in q_picked_up.iter_mut() {
         let mut last_collider: Collider = Collider::sphere(1.0);
 
         for collider_entity in picked_up_colliders.iter() {
@@ -238,6 +238,7 @@ fn picked_up_item(
         }
 
         commands.entity(picked_up_body).insert(RigidBodyDisabled);
+        linear_velocity.0 = Vec3::ZERO;
 
         if let Ok(mut body_transform) = transforms.get_mut(picked_up_body) {
             body_transform.rotation = Quat::IDENTITY;

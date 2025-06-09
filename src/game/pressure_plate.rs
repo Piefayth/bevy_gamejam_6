@@ -4,6 +4,7 @@ use super::{
 };
 use crate::{
     asset_management::asset_tag_components::{ChargePad, PressurePlate, WeightedCube},
+    game::audio::{pressure_plate_pressed_audio, pressure_plate_released_audio},
     rendering::unlit_material::UnlitMaterial,
     GameState,
 };
@@ -115,7 +116,9 @@ fn register_pressure_plates(
             .entity(plate_entity)
             .insert(PressurePlateDetector::default())
             .observe(on_pressure_plate_pressed)
-            .observe(on_pressure_plate_released);
+            .observe(on_pressure_plate_released)
+            .observe(pressure_plate_pressed_audio)
+            .observe(pressure_plate_released_audio);
 
         // Find the sibling ChargePad entity
         if let Ok(parent_children) = q_children.get(plate_parent.parent()) {

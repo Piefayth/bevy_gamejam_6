@@ -11,7 +11,7 @@ use bevy_tween::{
 
 use crate::{
     asset_management::asset_tag_components::{Door, PowerButton},
-    game::signals::DirectSignal,
+    game::{audio::button_pressed_audio, signals::DirectSignal},
     rendering::unlit_material::UnlitMaterial,
 };
 
@@ -57,7 +57,8 @@ fn register_buttons(
             commands
                 .entity(button_entity)
                 .insert((ButtonTargets(button_targets), RigidBody::Static))
-                .observe(button_pressed);
+                .observe(button_pressed)
+                .observe(button_pressed_audio);
         }
 
         for button_child in button_children.iter() {
@@ -72,6 +73,9 @@ fn register_buttons(
         }
     }
 }
+
+#[derive(Event)]
+pub struct ButtonPressed;
 
 pub fn button_pressed(
     trigger: Trigger<Interacted>,
@@ -131,6 +135,8 @@ pub fn button_pressed(
                     target: *target,
                 });
             }
+
+            commands.entity(collider_of.body).trigger(ButtonPressed);
         }
     }
 }

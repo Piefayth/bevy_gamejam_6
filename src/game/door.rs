@@ -14,7 +14,7 @@ use bevy_tween::{
 
 use crate::{
     asset_management::asset_tag_components::{ChargePad, Door, DoorPole, ExtraDoorPowerRequired},
-    game::pressure_plate::PoweredBy,
+    game::{audio::door_opened_audio, pressure_plate::PoweredBy},
     rendering::{section_color_prepass::DrawSection, unlit_material::UnlitMaterial},
 };
 
@@ -103,11 +103,14 @@ fn register_doors(
             }
         }
 
-        commands.entity(door_entity).insert((
-            RigidBody::Kinematic,
-            AnimationTarget,
-            DoorOriginalPosition(door_transform.translation),
-        ));
+        commands
+            .entity(door_entity)
+            .insert((
+                RigidBody::Kinematic,
+                AnimationTarget,
+                DoorOriginalPosition(door_transform.translation),
+            ))
+            .observe(door_opened_audio);
     }
 }
 
@@ -170,8 +173,11 @@ fn check_door_power_requirements(
 
         let is_currently_open = current_y > original_y + 1.0;
 
-        if should_be_open && !is_currently_open {
-            // Door should open
+        // Check if door is already animating by looking at its children
+        let is_animating = door_children.iter().any(|child| q_tween.contains(child));
+
+        if should_be_open && !is_currently_open && !is_animating {
+            // Door should open and isn't already animating
             for child in door_children.iter() {
                 if q_tween.contains(child) {
                     commands.entity(child).despawn();
@@ -182,6 +188,7 @@ fn check_door_power_requirements(
             let total_distance = DOOR_LIFT_HEIGHT;
             let progress = remaining_distance / total_distance;
             let duration = Duration::from_secs_f32(1.0 * progress);
+            commands.entity(door_entity).trigger(DoorOpened);
 
             commands
                 .entity(door_entity)
@@ -195,8 +202,8 @@ fn check_door_power_requirements(
                     )),
                 ))
                 .insert(DespawnOnFinish);
-        } else if !should_be_open && is_currently_open {
-            // Door should close
+        } else if !should_be_open && is_currently_open && !is_animating {
+            // Door should close and isn't already animating
             for child in door_children.iter() {
                 if q_tween.contains(child) {
                     commands.entity(child).despawn();
@@ -216,6 +223,9 @@ fn check_door_power_requirements(
         }
     }
 }
+
+#[derive(Event)]
+pub struct DoorOpened;
 
 fn on_power_added(
     trigger: Trigger<OnAdd, Powered>,
